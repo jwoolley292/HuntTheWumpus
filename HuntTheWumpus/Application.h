@@ -1,11 +1,22 @@
 #pragma once
-#include "Map.h";
+#include "Game.h"
 /*
-A console based application...
+A console based application for playing Hunt the Wumpus or creating an agent to play.
 */
 namespace ApplicationNS {
 	class Application
 	{
+	private:
+		GameNS::Game game;
+		void gameMenu();
+		void getSeed();
+
+		void move(int direction);
+		void shoot();
+		void escape();
+		void endGame();
+		void setStringToLowerCase(std::string toConvert);
+
 	public:
 		Application();
 		void mainMenu();

@@ -4,12 +4,10 @@
 using namespace RoomNS;
 using namespace std;
 
-Room::Room() = default;
+Room::Room() {
+	contents = EMPTY;
 
-Room::Room(int contents) {
-	this->contents = contents;
-
-	stench = false;
+	stenchy = false;
 	glistening = false;
 	breezy = false;
 
@@ -19,8 +17,21 @@ Room::Room(int contents) {
 	down = NULL;
 }
 
-void Room::setStench(bool stench) {
-	this->stench = stench;
+Room::Room(int contents) {
+	this->contents = contents;
+
+	stenchy = false;
+	glistening = false;
+	breezy = false;
+
+	right = NULL;
+	left = NULL;
+	up = NULL;
+	down = NULL;
+}
+
+void Room::setStenchy(bool stenchy) {
+	this->stenchy = stenchy;
 }
 
 void Room::setGlistening(bool glistening) {
@@ -31,48 +42,60 @@ void Room::setBreezy(bool breezy) {
 	this->breezy = breezy;
 }
 
-void Room::setRight(Room room) {
-	right = &room;
+void Room::setRight(Room* room) {
+	right = room;
 }
 
-void Room::setLeft(Room room) {
-	left = &room;
+void Room::setLeft(Room* room) {
+	left = room;
 }
 
-void Room::setUp(Room room) {
-	up = &room;
+void Room::setUp(Room* room) {
+	up = room;
 }
 
-void Room::setDown(Room room) {
-	down = &room;
+void Room::setDown(Room* room) {
+	down = room;
 }
 
-Room Room::getRight() {
-	return *right;
+Room* Room::getRight() {
+	return right;
 }
 
-Room Room::getLeft() {
-	return *left;
+Room* Room::getLeft() {
+	return left;
 }
 
-Room Room::getUp() {
-	return *up;
+Room* Room::getUp() {
+	return up;
 }
 
-Room Room::getDown() {
-	return *down;
+Room* Room::getDown() {
+	return down;
 }
 
 int Room::getContents() {
 	return contents;
 }
 
-// Method returning a string describing the room
+// Removes gold from the room and removes the glistening status from it and adjacent rooms.
+void Room::removeGold() {
+	if (contents == GOLD) {
+		contents = EMPTY;
+		setGlistening(false);
+		right->setGlistening(false);
+		left->setGlistening(false);
+		up->setGlistening(false);
+		down->setGlistening(false);
+	}
+}
+
+// Method returning a string describing the room.
 string Room::getSenses() {
 	string senses = "";
 
-	if (stench) {
-		senses += "Stench";
+	if (stenchy) {
+		senses += "Stenchy";
 	}
 	if (glistening) {
 		if (!senses.empty()) {

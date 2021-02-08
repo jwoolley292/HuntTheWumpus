@@ -10,18 +10,19 @@ namespace RoomNS{
 	private:
 		int contents;
 
-		// booleans giving information about adjacent rooms
-		bool stench;
+		// Booleans giving information about adjacent rooms.
+		bool stenchy;
 		bool glistening;
 		bool breezy;
 
+		// Pointers to adjacent rooms.
 		Room* right;
 		Room* left;
 		Room* up;
 		Room* down;
 
 	public:
-		// constants referring to the contents of the room
+		// Codes for the contents of rooms.
 		static const int WALL = -1;
 		static const int EMPTY = 0;
 		static const int EXIT = 1;
@@ -32,21 +33,22 @@ namespace RoomNS{
 		Room();
 		Room(int contents);
 
-		void setStench(bool stench);
+		void setStenchy(bool stenchy);
 		void setGlistening(bool glistening);
 		void setBreezy(bool breezy);
 
-		void setRight(Room room);
-		void setLeft(Room room);
-		void setUp(Room room);
-		void setDown(Room room);
+		void setRight(Room* room);
+		void setLeft(Room* room);
+		void setUp(Room* room);
+		void setDown(Room* room);
 
-		Room getRight();
-		Room getLeft();
-		Room getUp();
-		Room getDown();
+		Room* getRight();
+		Room* getLeft();
+		Room* getUp();
+		Room* getDown();
 
 		int getContents();
+		void removeGold();
 		std::string getSenses();
 	};
 }

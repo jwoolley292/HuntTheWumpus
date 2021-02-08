@@ -4,24 +4,29 @@
 #include <vector>
 
 /*
-A map is a 4 x 4 grid of rooms. The room at 0, 0 is the start point and exit and is always empty and at the top left of the map. 1 wumpus, 1 gold
-and 2 traps are distributed amongst the remaining rooms.
+A map is a 4 x 4 grid of rooms. The room at 0, 0 is the start point and exit and at the top left of the map. 1 wumpus, 1 gold and any number of traps are
+distributed amongst the remaining rooms.
 */
 namespace MapNS {
 	class Map {
 	private:
 		std::vector<RoomNS::Room> rooms;
-		RoomNS::Room currentRoom;
+		RoomNS::Room* currentRoom;
 
-		std::vector<RoomNS::Room> initialiseRooms();
-		void randomiseRooms();
+		std::vector<RoomNS::Room> initialiseRandomRooms();
+		std::vector<RoomNS::Room> initialiseSetRooms(std::string mapCode);
 		void connectRooms();
 		void addWalls();
 		void setRoomStates();
+
 	public:
 		Map();
-		Map(std::string mapCode);
+		Map(std::string seed);
 
-		std::string drawMap();
+		std::string drawPlayerMap();
+		std::string drawFullMap();
+		std::string getSenses();
+		RoomNS::Room* getCurrentRoom();
+		void setCurrentRoom(RoomNS::Room* room);
 	};
 }
