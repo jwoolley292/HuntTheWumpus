@@ -19,9 +19,9 @@ void Application::mainMenu() {
 	string command = "";
 	while (command.empty()) {
 		cin >> command;
+		command = setStringToLowerCase(command);
 		cout << "\n";
 
-		setStringToLowerCase(command);
 		if (command.compare("1") == 0) {
 			game = Game();
 			gameMenu();
@@ -99,9 +99,9 @@ void Application::gameMenu() {
 	string command = "";
 	while (command.empty()) {
 		cin >> command;
+		command = setStringToLowerCase(command);
 		cout << "\n";
 
-		setStringToLowerCase(command);
 		if (command.compare("d") == 0) {
 			move(Game::RIGHT);
 		}
@@ -141,6 +141,10 @@ Moves in the chosen direction unless there is a wall there. If the player dies, 
 gold, they are notified.
 */
 void Application::move(int direction) {
+	if (direction < 1 || direction > 4) {
+		throw "Invalid input: direction must be between 1 and 4";
+	}
+	
 	int result = Game::INVALID_INPUT;
 	switch (direction) {
 	case Game::RIGHT:
@@ -188,9 +192,9 @@ void Application::shoot() {
 		string command = "";
 		while (command.empty()) {
 			cin >> command;
+			command = setStringToLowerCase(command);
 			cout << "\n";
 
-			setStringToLowerCase(command);
 			if (command.compare("d") == 0) {
 				result = game.shoot(Game::RIGHT);
 			}
@@ -253,9 +257,9 @@ void Application::endGame() {
 	string command = "";
 	while (command.empty()) {
 		cin >> command;
+		setStringToLowerCase(command);
 		cout << "\n";
 	
-		setStringToLowerCase(command);
 		if(command.compare("y") == 0) {
 			mainMenu();
 		}
@@ -269,10 +273,11 @@ void Application::endGame() {
 	}
 }
 
-void Application::setStringToLowerCase(string toConvert) {
+string Application::setStringToLowerCase(string toConvert) {
 	for (int i = 0; i < toConvert.length(); i++) {
 		toConvert.at(i) = tolower(toConvert.at(i));
 	}
+	return toConvert;
 }
 
 int main() {

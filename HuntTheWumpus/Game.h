@@ -52,4 +52,3 @@ namespace GameNS {
 		int getArrows();
 	};
 }
-

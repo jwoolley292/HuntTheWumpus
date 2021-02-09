@@ -26,6 +26,10 @@ Game::Game(string seed) {
 
 // Moves the player one square in the chosen direction unless the target square is a wall.
 int Game::move(int direction) {
+	if (direction < 1 || direction > 4) {
+		throw "Invalid input: direction must be between 1 and 4";
+	}
+
 	Room* target;
 	switch (direction) {
 	case RIGHT:
@@ -67,6 +71,10 @@ int Game::move(int direction) {
 
 // Shoots the adjacent square unless that square is a wall. If a shot is fired, this consumes an arrow. If it hits the wumpus, the wumpus dies.
 int Game::shoot(int direction) {
+	if (direction < 1 || direction > 4) {
+		throw "Invalid input: direction must be between 1 and 4";
+	}
+
 	if (arrows < 1) {
 		return NO_ARROWS;
 	}

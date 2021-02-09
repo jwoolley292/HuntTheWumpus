@@ -52,4 +52,3 @@ namespace RoomNS{
 		std::string getSenses();
 	};
 }
-

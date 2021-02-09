@@ -15,11 +15,10 @@ namespace ApplicationNS {
 		void shoot();
 		void escape();
 		void endGame();
-		void setStringToLowerCase(std::string toConvert);
+		std::string setStringToLowerCase(std::string toConvert);
 
 	public:
 		Application();
 		void mainMenu();
 	};
 }
-
