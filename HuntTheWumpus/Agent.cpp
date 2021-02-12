@@ -1,4 +1,5 @@
 #include "Agent.h"
+#include <iostream>
 
 using namespace AgentNS;
 using namespace GameNS;
@@ -9,10 +10,24 @@ Agent::Agent() {
 }
 
 void Agent::initialiseKnowledgeBase() {
-	// Set all literals to unknown.
-	for (int i = 1; i < TRAP + 16; i++) {
+	// Set all contents literals to unknown.
+	for (int i = EMPTY; i < SHOT_HIT + 16; i++) {
 		unknownLiterals.push_back(i);
 	}
+
+	// There is a Wumpus/gold/exit.
+	list<int> wumpusList;
+	list<int> goldList;
+	list<int> exitList;
+	for (int i = 0; i < 16; i++) {
+		wumpusList.push_back(WUMPUS + i);
+		goldList.push_back(GOLD + i);
+		exitList.push_back(EXIT + i);
+	}
+
+	knownClauses.push_back(wumpusList);
+	knownClauses.push_back(goldList);
+	knownClauses.push_back(exitList);
 
 	// Fill clauses with the rules of the game.
 	for (int i = 0; i < 16; i++) {
@@ -34,19 +49,17 @@ void Agent::initialiseKnowledgeBase() {
 
 		knownClauses.push_back(list<int>{-(EXIT + i), -(EMPTY + i)});
 
-		// There is only one Wumpus/gold/exit.
-		for (int j = 0; j < 16; j++) {
-			if (i != j) {
-				knownClauses.push_back(list<int>{-(WUMPUS + i), -(WUMPUS + j)});
-				knownClauses.push_back(list<int>{-(GOLD + i), -(GOLD + j)});
-				knownClauses.push_back(list<int>{-(EXIT + i), -(EXIT + j)});
-			}
+		// The Wumpus/gold/exit cannot exist in two squares.
+		for (int j = i + 1; j < 16; j++) {
+			knownClauses.push_back(list<int>{-(WUMPUS + i), -(WUMPUS + j)});
+			knownClauses.push_back(list<int>{-(GOLD + i), -(GOLD + j)});
+			knownClauses.push_back(list<int>{-(EXIT + i), -(EXIT + j)});
 		}
 
 		bool rightEdge = i % 4 == 3;
 		bool leftEdge = i % 4 == 0;
 		bool topEdge = i < 4;
-		bool bottomEdge = i > 12;
+		bool bottomEdge = i > 11;
 
 		// If a square contains the Wumpus/gold/a trap, its neigbours are stenchy/glistening/breezy.
 		if (!rightEdge) {
@@ -62,15 +75,15 @@ void Agent::initialiseKnowledgeBase() {
 		}
 
 		if (!topEdge) {
-			knownClauses.push_back(list<int>{-(WUMPUS + i), (STENCHY + i + 4)});
-			knownClauses.push_back(list<int>{-(GOLD + i), (GLISTENING + i + 4)});
-			knownClauses.push_back(list<int>{-(TRAP + i), (BREEZY + i + 4)});
-		}
-
-		if (!bottomEdge) {
 			knownClauses.push_back(list<int>{-(WUMPUS + i), (STENCHY + i - 4)});
 			knownClauses.push_back(list<int>{-(GOLD + i), (GLISTENING + i - 4)});
 			knownClauses.push_back(list<int>{-(TRAP + i), (BREEZY + i - 4)});
+		}
+
+		if (!bottomEdge) {
+			knownClauses.push_back(list<int>{-(WUMPUS + i), (STENCHY + i + 4)});
+			knownClauses.push_back(list<int>{-(GOLD + i), (GLISTENING + i + 4)});
+			knownClauses.push_back(list<int>{-(TRAP + i), (BREEZY + i + 4)});
 		}
 
 		// If a square is stenchy/glistening/breezy at least one adjacent square contains the Wumpus/gold/a trap.
@@ -81,25 +94,25 @@ void Agent::initialiseKnowledgeBase() {
 		if (!rightEdge) {
 			stenchyList.push_back(WUMPUS + i + 1);
 			glisteningList.push_back(GOLD + i + 1);
-			breezyList.push_back(BREEZY + i + 1);
+			breezyList.push_back(TRAP + i + 1);
 		}
 
 		if (!leftEdge) {
 			stenchyList.push_back(WUMPUS + i - 1);
 			glisteningList.push_back(GOLD + i - 1);
-			breezyList.push_back(BREEZY + i - 1);
+			breezyList.push_back(TRAP + i - 1);
 		}
 
 		if (!topEdge) {
-			stenchyList.push_back(WUMPUS + i + 4);
-			glisteningList.push_back(GOLD + i + 4);
-			breezyList.push_back(BREEZY + i + 4);
+			stenchyList.push_back(WUMPUS + i - 4);
+			glisteningList.push_back(GOLD + i - 4);
+			breezyList.push_back(TRAP + i - 4);
 		}
 
 		if (!bottomEdge) {
-			stenchyList.push_back(WUMPUS + i - 4);
-			glisteningList.push_back(GOLD + i - 4);
-			breezyList.push_back(BREEZY + i - 4);
+			stenchyList.push_back(WUMPUS + i + 4);
+			glisteningList.push_back(GOLD + i + 4);
+			breezyList.push_back(TRAP + i + 4);
 		}
 
 		knownClauses.push_back(stenchyList);
@@ -113,32 +126,62 @@ Takes a list of new literals known to be true and adds them to the knowledge bas
 is also added.
 */
 void Agent::updateKnowledgeBase(list<int> literals) {
+	//for (list<list<int>>::iterator i = knownClauses.begin(); i != knownClauses.end(); i++) {
+	//	for (list<int>::iterator j = i->begin(); j != i->end(); j++) {
+	//		cout << *j << " ";
+	//	}
+	//	cout << "\n";
+	//}
+	//cout << "\n";
+
 	// Add new information to the knowledge base.
 	for (list<int>::iterator i = literals.begin(); i != literals.end(); i++) {
-		knownLiterals.push_back(*i);
-		unknownLiterals.remove(abs(*i));
-		knownClauses = simplifyClauses(knownClauses, *i);
+		if (find(knownLiterals.begin(), knownLiterals.end(), *i) == knownLiterals.end()) {
+			knownLiterals.push_back(*i);
+			unknownLiterals.remove(abs(*i));
+			knownClauses = simplifyClauses(knownClauses, *i);
+		}
 	}
 
 	// Make inferences.
 	for (list<int>::iterator i = unknownLiterals.begin(); i != unknownLiterals.end(); i++) {
-		list<int> newUnknownLiterals = unknownLiterals;
-		newUnknownLiterals.remove(*i);
+		if (*i >= EMPTY && *i < SHOT_HIT) {
+			list<int> newUnknownLiterals = unknownLiterals;
+			list<int> newKnownLiterals = knownLiterals;
 
-		list<int> newKnownLiterals = knownLiterals;
-		newKnownLiterals.push_back(*i);
+			newUnknownLiterals.remove(*i);
+			newKnownLiterals.push_back(*i);
 
-		if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
-			updateKnowledgeBase(list<int> {*i});
-			break;
-		}
+			cout << "GUESSING " << *i << "\n";
+			cout << "***********************************************************\n";
+			cout << "***********************************************************\n";
+			cout << "***********************************************************\n";
+			cout << "***********************************************************\n";
+			cout << "***********************************************************\n";
+			cout << "***********************************************************\n";
+			cout << "***********************************************************\n";
+			if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
+				updateKnowledgeBase(list<int> {-*i});
+				printKnownLiterals();
+				break;
+			}
 
-		newKnownLiterals.remove(*i);
-		newKnownLiterals.push_back(-*i);
+			newKnownLiterals.remove(*i);
+			newKnownLiterals.push_back(-*i);
 
-		if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
-			updateKnowledgeBase(list<int> {*i});
-			break;
+			cout << "GUESSING " << -*i << "\n";
+			cout << "***********************************************************\n";
+			cout << "***********************************************************\n";
+			cout << "***********************************************************\n";
+			cout << "***********************************************************\n";
+			cout << "***********************************************************\n";
+			cout << "***********************************************************\n";
+			cout << "***********************************************************\n";
+			if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
+				updateKnowledgeBase(list<int> {*i});
+				printKnownLiterals();
+				break;
+			}
 		}
 	}
 }
@@ -146,14 +189,13 @@ void Agent::updateKnowledgeBase(list<int> literals) {
 list<list<int>> Agent::simplifyClauses(list<list<int>> clauses, int l) {
 	list<list<int>>::iterator i = clauses.begin();
 	while (i != clauses.end()) {
-		
 		// If one literal in a clause is true, the whole clause is always true. It therefore tells us nothing and can be removed.
-		if (find(*i->begin(), *i->end(), l) != *i->end()) {
+		if (find(i->begin(), i->end(), l) != i->end()) {
 			i = clauses.erase(i);
 		}
 
 		// If one literal in a clause is false, at least one of the others must be true. This corresponds to a clause without the false literal.
-		else if (find(*i->begin(), *i->end(), -l)) {
+		else if (find(i->begin(), i->end(), -l) != i->end()) {
 			i->remove(-l);
 			if (i->empty()) {
 				i = clauses.erase(i);
@@ -178,16 +220,18 @@ knowledge base cannot be satisfied with the guessed literal. This implies that t
 knowledge base.
 */
 bool Agent::DPLL(list<list<int>> clauses, list<int> literals, list<int> partialModel) {
+	cout << partialModel.back() << "\n";
 	// If the model already satisfies/doesn't satisfy the knowledge base, the search can end.
 	int modelBool = checkModel(clauses, partialModel);
 	if (modelBool == TRUE_INT) {
+		cout << ", true\n";
 		return true;
 	}
 	else if (modelBool == FALSE_INT) {
 		return false;
 	}
 
-	clauses = simplifyClauses(clauses, *partialModel.end());
+	clauses = simplifyClauses(clauses, partialModel.back());
 
 	// Check pure literals.
 	int pureLiteral = findPureLiteral(clauses, literals);
@@ -198,6 +242,7 @@ bool Agent::DPLL(list<list<int>> clauses, list<int> literals, list<int> partialM
 		list<int> newPartialModel = partialModel;
 		newPartialModel.push_back(pureLiteral);
 		
+		cout << "pure: ";
 		return DPLL(clauses, newLiterals, newPartialModel);
 	}
 
@@ -210,18 +255,22 @@ bool Agent::DPLL(list<list<int>> clauses, list<int> literals, list<int> partialM
 		list<int> newPartialModel = partialModel;
 		newPartialModel.push_back(unitClause);
 
+		cout << "unit: ";
 		return DPLL(clauses, newLiterals, newPartialModel);
 	}
 
 	// Check remaining literals.
 	list<int> newLiterals = literals;
-	newLiterals.remove(literals.front());
-
 	list<int> trueNewPartialModel = partialModel;
-	trueNewPartialModel.push_back(literals.front());
-
 	list<int> falseNewPartialModel = partialModel;
-	falseNewPartialModel.push_back(literals.front());
+	for (list<int>::iterator i = literals.begin(); i != literals.end(); i++) {
+		if (*i >= EMPTY && *i < SHOT_HIT) {
+			newLiterals.remove(*i);
+			trueNewPartialModel.push_back(*i);
+			falseNewPartialModel.push_back(-*i);
+			break;
+		}
+	}
 
 	return DPLL(clauses, newLiterals, trueNewPartialModel) || DPLL(clauses, newLiterals, falseNewPartialModel);
 }
@@ -235,6 +284,10 @@ int Agent::checkModel(list<list<int>> clauses, list<int> partialModel) {
 	for (list<list<int>>::iterator i = clauses.begin(); i != clauses.end(); i++) {
 		int clauseBool = checkClause(*i, partialModel);
 		if (clauseBool == FALSE_INT) {
+			cout << "FALSE: ";
+			for (list<int>::iterator j = i->begin(); j != i->end(); j++) {
+				cout << *j << " ";
+			}
 			return FALSE_INT;
 		}
 		else if (clauseBool == NULL_INT) {
@@ -253,15 +306,15 @@ to true. The clause is only false if all negative literals are found, so if any 
 */
 int Agent::checkClause(list<int> clause, list<int> partialModel) {
 	// Check if the clause is true.
-	for (list<int>::iterator i = partialModel.begin(); i != partialModel.end(); i++) {
-		if (find(clause.begin(), clause.end(), *i) != clause.end()) {
+	for (list<int>::iterator i = clause.begin(); i != clause.end(); i++) {
+		if (find(partialModel.begin(), partialModel.end(), *i) != partialModel.end()) {
 			return TRUE_INT;
 		}
 	}
 
 	// Check if the clause is unknown.
-	for (list<int>::iterator i = partialModel.begin(); i != partialModel.end(); i++) {
-		if (find(clause.begin(), clause.end(), -*i) == clause.end()) {
+	for (list<int>::iterator i = clause.begin(); i != clause.end(); i++) {
+		if (find(partialModel.begin(), partialModel.end(), -*i) == partialModel.end()) {
 			return NULL_INT;
 		}
 	}
@@ -280,7 +333,7 @@ int Agent::findPureLiteral(list<list<int>> clauses, list<int> literals) {
 
 		for (list<list<int>>::iterator j = clauses.begin(); j != clauses.end(); j++) {
 			// Check for the positive literal.
-			if (find(*j->begin(), *j->end(), *i) != *j->end()) {
+			if (find(j->begin(), j->end(), *i) != j->end()) {
 				if (pure == 0) {
 					pure = 1;
 				}
@@ -291,7 +344,7 @@ int Agent::findPureLiteral(list<list<int>> clauses, list<int> literals) {
 			}
 
 			// Check for the negative literal.
-			else if (find(*j->begin(), *j->end(), -*i) != *j->end()) {
+			else if (find(j->begin(), j->end(), -*i) != j->end()) {
 				if (pure == 0) {
 					pure = -1;
 				}
@@ -324,4 +377,45 @@ int Agent::findUnitClause(list<list<int>> clauses) {
 	}
 
 	return 0;
+}
+
+void Agent::addClause(list<int> clause) {
+	knownClauses.push_back(clause);
+}
+
+void Agent::addUnknownLiterals(list<int> literals) {
+	for (list<int>::iterator i = literals.begin(); i != literals.end(); i++) {
+		unknownLiterals.push_back(*i);
+	}
+}
+
+list<int> Agent::getKnownLiterals() {
+	return knownLiterals;
+}
+
+void Agent::printKnowledgeBase(list<list<int>> clauses, list<int> literals, list<int> partialModel) {
+	cout << "known: ";
+	for (list<int>::iterator i = partialModel.begin(); i != partialModel.end(); i++) {
+		cout << *i << " ";
+	}
+	cout << "\nunknown: ";
+	for (list<int>::iterator i = literals.begin(); i != literals.end(); i++) {
+		cout << *i << " ";
+	}
+	cout << "\nclauses:\n";
+	for (list<list<int>>::iterator i = clauses.begin(); i != clauses.end(); i++) {
+		for (list<int>::iterator j = i->begin(); j != i->end(); j++) {
+			cout << *j << " ";
+		}
+		cout << "\n";
+	}
+	cout << "\n\n";
+}
+
+void Agent::printKnownLiterals() {
+	cout << "Known: ";
+	for (list<int>::iterator i = knownLiterals.begin(); i != knownLiterals.end(); i++) {
+		cout << *i << " ";
+	}
+	cout << "\n\n";
 }

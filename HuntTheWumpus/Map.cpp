@@ -50,6 +50,10 @@ vector<Room> Map::initialiseRandomRooms() {
 		r.at(i) = temp;
 	}
 
+	for (int i = 0; i < 16; i++) {
+		r.at(i).setIndex(i);
+	}
+
 	return r;
 }
 
@@ -86,6 +90,10 @@ vector<Room> Map::initialiseSetRooms(string seed) {
 		if (seed.empty()) {
 			break;
 		}
+	}
+
+	for (int i = 0; i < 16; i++) {
+		r.at(i).setIndex(i);
 	}
 
 	return r;
@@ -223,7 +231,7 @@ string Map::drawFullMap() {
 	return map;
 }
 
-string Map::getSenses() {
+list<int> Map::getSenses() {
 	return currentRoom->getSenses();
 }
 

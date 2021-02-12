@@ -3,6 +3,8 @@
 
 using namespace ApplicationNS;
 using namespace GameNS;
+using namespace AgentNS;
+using namespace RoomNS;
 using namespace std;
 
 Application::Application() {
@@ -24,6 +26,9 @@ void Application::mainMenu() {
 
 		if (command.compare("1") == 0) {
 			game = Game();
+			agent = Agent();
+			cout << game.drawFullMap() << "\n\n";
+			agent.updateKnowledgeBase(generateMoveUpdate());
 			gameMenu();
 		}
 		else if (command.compare("2") == 0) {
@@ -94,7 +99,7 @@ void Application::getSeed() {
 // Draws the map showing the player and exit locations, then takes the players input.
 void Application::gameMenu() {
 	cout << game.drawPlayerMap() << "\n\n";
-	cout << "The room is: " << game.getSenses() << "\n\n";
+	printSenses();
 
 	string command = "";
 	while (command.empty()) {
@@ -171,10 +176,16 @@ void Application::move(int direction) {
 		mainMenu();
 	}
 	else if (result == Game::EMPTY_ROOM) {
+		agent.updateKnowledgeBase(generateMoveUpdate());
 		gameMenu();
 	}
 	else if (result == Game::FOUND_GOLD) {
-		cout << "You found gold!\n\n";
+		list<int> update = generateMoveUpdate();
+		update.push_back(Agent::GOLD_FOUND);
+		agent.updateKnowledgeBase(update);
+		if (!game.getGoldAquired()) {
+			cout << "You found gold!\n\n";
+		}
 		gameMenu();
 	}
 }
@@ -271,6 +282,81 @@ void Application::endGame() {
 			cout << "Enter y for yes or n for no\n\n";
 		}
 	}
+}
+
+/*
+Generates a list of literals with which to update the agent after moving.
+*/
+list<int> Application::generateMoveUpdate() {
+	list<int> update;
+
+	int contents = game.getContents();
+	if (contents == Room::EMPTY) {
+		update.push_back(Agent::EMPTY + game.currentRoomIndex());
+	}
+	else if (contents == Room::EXIT) {
+		update.push_back(Agent::EXIT + game.currentRoomIndex());
+	}
+	else if (contents == Room::WUMPUS) {
+		update.push_back(Agent::WUMPUS + game.currentRoomIndex());
+	}
+	else if (contents == Room::GOLD) {
+		update.push_back(Agent::GOLD + game.currentRoomIndex());
+	}
+	else if (contents == Room::TRAP) {
+		update.push_back(Agent::TRAP + game.currentRoomIndex());
+	}
+
+	list<int> senses = game.getSenses();
+	if (find(senses.begin(), senses.end(), Room::STENCHY) != senses.end()) {
+		update.push_back(Agent::STENCHY + game.currentRoomIndex());
+	}
+	else {
+		update.push_back(-(Agent::STENCHY + game.currentRoomIndex()));
+	}
+
+	if (find(senses.begin(), senses.end(), Room::GLISTENING) != senses.end()) {
+		update.push_back(Agent::GLISTENING + game.currentRoomIndex());
+	}
+	else {
+		update.push_back(-(Agent::GLISTENING + game.currentRoomIndex()));
+	}
+
+	if (find(senses.begin(), senses.end(), Room::BREEZY) != senses.end()) {
+		update.push_back(Agent::BREEZY + game.currentRoomIndex());
+	}
+	else {
+		update.push_back(-(Agent::BREEZY + game.currentRoomIndex()));
+	}
+
+	for (list<int>::iterator i = update.begin(); i != update.end(); i++) {
+		cout << *i << " ";
+	}
+	cout << "\n\n";
+
+	return update;
+}
+
+void Application::printSenses() {
+	list<int> senses = game.getSenses();
+	string sensesString = "The room is: ";
+	if (senses.empty()) {
+		sensesString += "empty ";
+	}
+	else {
+		for (list<int>::iterator i = senses.begin(); i != senses.end(); i++) {
+			if (*i == Room::STENCHY) {
+				sensesString += "stenchy ";
+			}
+			else if (*i == Room::GLISTENING) {
+				sensesString += "glistening ";
+			}
+			else if (*i == Room::BREEZY) {
+				sensesString += "breezy ";
+			}
+		}
+	}
+	cout << sensesString << "\n\n";
 }
 
 string Application::setStringToLowerCase(string toConvert) {

@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.30907.101
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HuntTheWumpus", "HuntTheWumpus\HuntTheWumpus.vcxproj", "{52542957-34AD-42DD-AA88-E54D848F0A6D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AITest", "AITest\AITest.vcxproj", "{843E45B6-EA65-4B70-B43C-D992EFA4E092}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{52542957-34AD-42DD-AA88-E54D848F0A6D}.Release|x64.Build.0 = Release|x64
 		{52542957-34AD-42DD-AA88-E54D848F0A6D}.Release|x86.ActiveCfg = Release|Win32
 		{52542957-34AD-42DD-AA88-E54D848F0A6D}.Release|x86.Build.0 = Release|Win32
+		{843E45B6-EA65-4B70-B43C-D992EFA4E092}.Debug|x64.ActiveCfg = Debug|x64
+		{843E45B6-EA65-4B70-B43C-D992EFA4E092}.Debug|x64.Build.0 = Debug|x64
+		{843E45B6-EA65-4B70-B43C-D992EFA4E092}.Debug|x86.ActiveCfg = Debug|Win32
+		{843E45B6-EA65-4B70-B43C-D992EFA4E092}.Debug|x86.Build.0 = Debug|Win32
+		{843E45B6-EA65-4B70-B43C-D992EFA4E092}.Release|x64.ActiveCfg = Release|x64
+		{843E45B6-EA65-4B70-B43C-D992EFA4E092}.Release|x64.Build.0 = Release|x64
+		{843E45B6-EA65-4B70-B43C-D992EFA4E092}.Release|x86.ActiveCfg = Release|Win32
+		{843E45B6-EA65-4B70-B43C-D992EFA4E092}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

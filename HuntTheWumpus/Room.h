@@ -1,5 +1,5 @@
 #pragma once
-#include <string>
+#include <list>
 
 /*
 A room can contain one or none of the wumpus, the gold or a trap. A room adjacent to or containing the wumpus has a stench. A room adjacent
@@ -9,6 +9,7 @@ namespace RoomNS{
 	class Room {
 	private:
 		int contents;
+		int index;
 
 		// Booleans giving information about adjacent rooms.
 		bool stenchy;
@@ -30,8 +31,15 @@ namespace RoomNS{
 		static const int GOLD = 3;
 		static const int TRAP = 4;
 
+		static const int STENCHY = 1;
+		static const int GLISTENING = 2;
+		static const int BREEZY = 3;
+
 		Room();
 		Room(int contents);
+
+		void setIndex(int i);
+		int getIndex();
 
 		void setStenchy(bool stenchy);
 		void setGlistening(bool glistening);
@@ -48,7 +56,6 @@ namespace RoomNS{
 		Room* getDown();
 
 		int getContents();
-		void removeGold();
-		std::string getSenses();
+		std::list<int> getSenses();
 	};
 }

@@ -61,7 +61,6 @@ int Game::move(int direction) {
 		return DIED;
 	}
 	else if (target->getContents() == Room::GOLD) {
-		target->removeGold();
 		goldAquired = true;
 		return FOUND_GOLD;
 	}
@@ -127,6 +126,10 @@ int Game::getScore() {
 	return score;
 }
 
+int Game::currentRoomIndex() {
+	return map.getCurrentRoom()->getIndex();
+}
+
 string Game::drawPlayerMap() {
 	return map.drawPlayerMap();
 }
@@ -135,10 +138,18 @@ string Game::drawFullMap() {
 	return map.drawFullMap();
 }
 
-string Game::getSenses() {
+int Game::getContents() {
+	return map.getCurrentRoom()->getContents();
+}
+
+list<int> Game::getSenses() {
 	return map.getSenses();
 }
 
 int Game::getArrows() {
 	return arrows;
+}
+
+bool Game::getGoldAquired() {
+	return goldAquired;
 }

@@ -25,7 +25,7 @@ namespace MapNS {
 
 		std::string drawPlayerMap();
 		std::string drawFullMap();
-		std::string getSenses();
+		std::list<int> getSenses();
 		RoomNS::Room* getCurrentRoom();
 		void setCurrentRoom(RoomNS::Room* room);
 	};

@@ -6,6 +6,7 @@ using namespace std;
 
 Room::Room() {
 	contents = EMPTY;
+	index = -1;
 
 	stenchy = false;
 	glistening = false;
@@ -19,6 +20,7 @@ Room::Room() {
 
 Room::Room(int contents) {
 	this->contents = contents;
+	index = -1;
 
 	stenchy = false;
 	glistening = false;
@@ -28,6 +30,14 @@ Room::Room(int contents) {
 	left = NULL;
 	up = NULL;
 	down = NULL;
+}
+
+void Room::setIndex(int i) {
+	index = i;
+}
+
+int Room::getIndex() {
+	return index;
 }
 
 void Room::setStenchy(bool stenchy) {
@@ -78,40 +88,18 @@ int Room::getContents() {
 	return contents;
 }
 
-// Removes gold from the room and removes the glistening status from it and adjacent rooms.
-void Room::removeGold() {
-	if (contents == GOLD) {
-		contents = EMPTY;
-		setGlistening(false);
-		right->setGlistening(false);
-		left->setGlistening(false);
-		up->setGlistening(false);
-		down->setGlistening(false);
-	}
-}
-
 // Method returning a string describing the room.
-string Room::getSenses() {
-	string senses = "";
+list<int> Room::getSenses() {
+	list<int> senses;
 
 	if (stenchy) {
-		senses += "Stenchy";
+		senses.push_back(STENCHY);
 	}
 	if (glistening) {
-		if (!senses.empty()) {
-			senses += ", ";
-		}
-		senses += "Glistening";
+		senses.push_back(GLISTENING);
 	}
 	if (breezy) {
-		if (!senses.empty()) {
-			senses += ", ";
-		}
-		senses += "Breezy";
-	}
-
-	if (senses.empty()) {
-		senses += "Empty";
+		senses.push_back(BREEZY);
 	}
 
 	return senses;

@@ -45,10 +45,15 @@ namespace GameNS {
 		int move(int direction);
 		int shoot(int direction);
 		int escape();
+
 		int getScore();
+		int currentRoomIndex();
+		
 		std::string drawPlayerMap();
 		std::string drawFullMap();
-		std::string getSenses();
+		int getContents();
+		std::list<int> getSenses();
 		int getArrows();
+		bool getGoldAquired();
 	};
 }
