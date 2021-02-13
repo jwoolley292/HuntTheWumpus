@@ -11,12 +11,15 @@ namespace AgentNS {
 		std::list<std::list<int>> knownClauses;
 		std::list<int> unknownLiterals;
 		std::list<int> knownLiterals;
+		int currentLocation;
 
 		void initialiseKnowledgeBase();
 
 		std::list<std::list<int>> simplifyClauses(std::list<std::list<int>> clauses, int l);
-		bool DPLL(std::list<std::list<int>> clauses, std::list<int> literals, std::list<int> partialModel);
+		void prioritiseUnknownLiterals(std::list<int> literals);
+		std::list<int> locationPriorities();
 
+		bool DPLL(std::list<std::list<int>> clauses, std::list<int> literals, std::list<int> partialModel);
 		int checkModel(std::list<std::list<int>> clauses, std::list<int> partialModel);
 		int checkClause(std::list<int> clause, std::list<int> partialModel);
 		int findPureLiteral(std::list<std::list<int>> clauses, std::list<int> literals);
@@ -42,6 +45,16 @@ namespace AgentNS {
 		static const int TRUE_INT = 1;
 		static const int FALSE_INT = 0;
 		static const int NULL_INT = -1;
+
+		static const int MOVE_RIGHT = 1;
+		static const int MOVE_LEFT = 2;
+		static const int MOVE_UP = 3;
+		static const int MOVE_DOWN = 4;
+		static const int SHOOT_RIGHT = 5;
+		static const int SHOOT_LEFT = 6;
+		static const int SHOOT_UP = 7;
+		static const int SHOOT_DOWN = 8;
+		static const int ESCAPE = 9;
 
 		Agent();
 		void updateKnowledgeBase(std::list<int> literals);

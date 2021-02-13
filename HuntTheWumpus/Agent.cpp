@@ -10,6 +10,9 @@ Agent::Agent() {
 }
 
 void Agent::initialiseKnowledgeBase() {
+	// Set location to the enterance.
+	currentLocation = 0;
+
 	// Set all contents literals to unknown.
 	for (int i = EMPTY; i < SHOT_HIT + 16; i++) {
 		unknownLiterals.push_back(i);
@@ -126,14 +129,6 @@ Takes a list of new literals known to be true and adds them to the knowledge bas
 is also added.
 */
 void Agent::updateKnowledgeBase(list<int> literals) {
-	//for (list<list<int>>::iterator i = knownClauses.begin(); i != knownClauses.end(); i++) {
-	//	for (list<int>::iterator j = i->begin(); j != i->end(); j++) {
-	//		cout << *j << " ";
-	//	}
-	//	cout << "\n";
-	//}
-	//cout << "\n";
-
 	// Add new information to the knowledge base.
 	for (list<int>::iterator i = literals.begin(); i != literals.end(); i++) {
 		if (find(knownLiterals.begin(), knownLiterals.end(), *i) == knownLiterals.end()) {
@@ -143,25 +138,33 @@ void Agent::updateKnowledgeBase(list<int> literals) {
 		}
 	}
 
-	// Make inferences.
-	for (list<int>::iterator i = unknownLiterals.begin(); i != unknownLiterals.end(); i++) {
-		if (*i >= EMPTY && *i < SHOT_HIT) {
+	// Add unit clauses to the knowledge base.
+	list<int> unitClauses;
+	for (list<list<int>>::iterator i = knownClauses.begin(); i != knownClauses.end(); i++) {
+		if (i->size() == 1) {
+			unitClauses.push_back(i->front());
+		}
+	}
+	if (!unitClauses.empty()) {
+		for (list<int>::iterator i = unitClauses.begin(); i != unitClauses.end(); i++) {
+			literals.push_back(*i);
+		}
+		updateKnowledgeBase(literals);
+	}
+	else {
+		// Make inferences.
+		prioritiseUnknownLiterals(literals);
+		for (list<int>::iterator i = unknownLiterals.begin(); i != unknownLiterals.end(); i++) {
 			list<int> newUnknownLiterals = unknownLiterals;
 			list<int> newKnownLiterals = knownLiterals;
 
 			newUnknownLiterals.remove(*i);
 			newKnownLiterals.push_back(*i);
 
-			cout << "GUESSING " << *i << "\n";
-			cout << "***********************************************************\n";
-			cout << "***********************************************************\n";
-			cout << "***********************************************************\n";
-			cout << "***********************************************************\n";
-			cout << "***********************************************************\n";
-			cout << "***********************************************************\n";
-			cout << "***********************************************************\n";
+			cout << "GUESSING " << *i << ": ";
 			if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
-				updateKnowledgeBase(list<int> {-*i});
+				literals.push_back(-*i);
+				updateKnowledgeBase(literals);
 				printKnownLiterals();
 				break;
 			}
@@ -169,16 +172,10 @@ void Agent::updateKnowledgeBase(list<int> literals) {
 			newKnownLiterals.remove(*i);
 			newKnownLiterals.push_back(-*i);
 
-			cout << "GUESSING " << -*i << "\n";
-			cout << "***********************************************************\n";
-			cout << "***********************************************************\n";
-			cout << "***********************************************************\n";
-			cout << "***********************************************************\n";
-			cout << "***********************************************************\n";
-			cout << "***********************************************************\n";
-			cout << "***********************************************************\n";
+			cout << "GUESSING " << -*i << ": ";
 			if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
-				updateKnowledgeBase(list<int> {*i});
+				literals.push_back(*i);
+				updateKnowledgeBase(literals);
 				printKnownLiterals();
 				break;
 			}
@@ -213,6 +210,98 @@ list<list<int>> Agent::simplifyClauses(list<list<int>> clauses, int l) {
 }
 
 /*
+Reorders the unknown literals such that guesses which are more likely to be successful are attempted first.
+*/
+void Agent::prioritiseUnknownLiterals(list<int> literals) {
+	list<int> prioritisedLiterals;
+	list<int> unprioritisedLiterals = unknownLiterals;
+	list<int> prioritisedLocations = locationPriorities();
+
+	bool wumpus = false;
+	bool gold = false;
+	for (list<int>::iterator i = literals.begin(); i != literals.end(); i++) {
+		if ((*i >= STENCHY && *i < GLISTENING) || (*i >= WUMPUS && *i < GOLD)) {
+			wumpus = true;
+		}
+		else if ((*i >= GLISTENING && *i < BREEZY) || (*i >= GOLD && *i < TRAP)) {
+			gold = true;
+		}
+	}
+	// If the current square is stenchy, prioritise guessing the location of the Wumpus.
+	if (wumpus) {
+		for (list<int>::iterator j = prioritisedLocations.begin(); j != prioritisedLocations.end(); j++) {
+			if (find(unprioritisedLiterals.begin(), unprioritisedLiterals.end(), *j + WUMPUS) != unprioritisedLiterals.end()) {
+				prioritisedLiterals.push_front(*j + WUMPUS);
+				unprioritisedLiterals.remove(*j + WUMPUS);
+			}
+		}
+	}
+	
+	// If the current square is glistening, prioritise guessing the location of the gold.
+	if (gold) {
+		for (list<int>::iterator j = prioritisedLocations.begin(); j != prioritisedLocations.end(); j++) {
+			if (find(unprioritisedLiterals.begin(), unprioritisedLiterals.end(), *j + GOLD) != unprioritisedLiterals.end()) {
+				prioritisedLiterals.push_front(*j + GOLD);
+				unprioritisedLiterals.remove(*j + GOLD);
+			}
+		}
+	}
+
+	// Add the remaining unknown literals.
+	for (list<int>::iterator j = prioritisedLocations.begin(); j != prioritisedLocations.end(); j++) {
+		if (find(unprioritisedLiterals.begin(), unprioritisedLiterals.end(), *j + WUMPUS) != unprioritisedLiterals.end()) {
+			prioritisedLiterals.push_back(*j + WUMPUS);
+			unprioritisedLiterals.remove(*j + WUMPUS);
+		}
+		if (find(unprioritisedLiterals.begin(), unprioritisedLiterals.end(), *j + GOLD) != unprioritisedLiterals.end()) {
+			prioritisedLiterals.push_back(*j + GOLD);
+			unprioritisedLiterals.remove(*j + GOLD);
+		}
+		if (find(unprioritisedLiterals.begin(), unprioritisedLiterals.end(), *j + TRAP) != unprioritisedLiterals.end()) {
+			prioritisedLiterals.push_back(*j + TRAP);
+			unprioritisedLiterals.remove(*j + TRAP);
+		}
+	}
+
+	unknownLiterals = prioritisedLiterals;
+}
+
+/*
+Returns a list of locations in order of distance away. Distance to a location is measured in the number of actions required to reach it.
+*/
+list<int> Agent::locationPriorities() {
+	list<int> prioritisedLocations;
+	list<int> newLocations;
+
+	prioritisedLocations.push_back(currentLocation);
+	newLocations.push_back(currentLocation);
+	while (prioritisedLocations.size() != 16) {
+		list<int> nextNewLocations;
+		for (list<int>::iterator i = newLocations.begin(); i != newLocations.end(); i++) {
+			if (*i % 4 != 3 && find(prioritisedLocations.begin(), prioritisedLocations.end(), *i + 1) == prioritisedLocations.end()) {
+				prioritisedLocations.push_back(*i + 1);
+				nextNewLocations.push_back(*i + 1);
+			}
+			if (*i % 4 != 0 && find(prioritisedLocations.begin(), prioritisedLocations.end(), *i - 1) == prioritisedLocations.end()) {
+				prioritisedLocations.push_back(*i - 1);
+				nextNewLocations.push_back(*i - 1);
+			}
+			if (*i > 3 && find(prioritisedLocations.begin(), prioritisedLocations.end(), *i - 4) == prioritisedLocations.end()) {
+				prioritisedLocations.push_back(*i - 4);
+				nextNewLocations.push_back(*i - 4);
+			}
+			if (*i < 12 && find(prioritisedLocations.begin(), prioritisedLocations.end(), *i + 4) == prioritisedLocations.end()) {
+				prioritisedLocations.push_back(*i + 4);
+				nextNewLocations.push_back(*i + 4);
+			}
+		}
+		newLocations = nextNewLocations;
+	}
+
+	return prioritisedLocations;
+}
+
+/*
 DPLL algorithm for making inferences. It takes a partial model made up of a smaller partial model which is known to satisfy the set of knowledge base and
 a single guessed literal and checks if this satisfies the knowledge base. If it does, it guesses another and calls itself with. If not, it checks if the
 guessed literal can be given the opposite sign, again calling itself recursively. If neither sign can give a valid model in the recursive steps, the
@@ -220,14 +309,14 @@ knowledge base cannot be satisfied with the guessed literal. This implies that t
 knowledge base.
 */
 bool Agent::DPLL(list<list<int>> clauses, list<int> literals, list<int> partialModel) {
-	cout << partialModel.back() << "\n";
 	// If the model already satisfies/doesn't satisfy the knowledge base, the search can end.
 	int modelBool = checkModel(clauses, partialModel);
 	if (modelBool == TRUE_INT) {
-		cout << ", true\n";
+		cout << "true\n";
 		return true;
 	}
 	else if (modelBool == FALSE_INT) {
+		cout << "false\n";
 		return false;
 	}
 
@@ -242,7 +331,6 @@ bool Agent::DPLL(list<list<int>> clauses, list<int> literals, list<int> partialM
 		list<int> newPartialModel = partialModel;
 		newPartialModel.push_back(pureLiteral);
 		
-		cout << "pure: ";
 		return DPLL(clauses, newLiterals, newPartialModel);
 	}
 
@@ -255,7 +343,6 @@ bool Agent::DPLL(list<list<int>> clauses, list<int> literals, list<int> partialM
 		list<int> newPartialModel = partialModel;
 		newPartialModel.push_back(unitClause);
 
-		cout << "unit: ";
 		return DPLL(clauses, newLiterals, newPartialModel);
 	}
 
@@ -284,10 +371,6 @@ int Agent::checkModel(list<list<int>> clauses, list<int> partialModel) {
 	for (list<list<int>>::iterator i = clauses.begin(); i != clauses.end(); i++) {
 		int clauseBool = checkClause(*i, partialModel);
 		if (clauseBool == FALSE_INT) {
-			cout << "FALSE: ";
-			for (list<int>::iterator j = i->begin(); j != i->end(); j++) {
-				cout << *j << " ";
-			}
 			return FALSE_INT;
 		}
 		else if (clauseBool == NULL_INT) {
