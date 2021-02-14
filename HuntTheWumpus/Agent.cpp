@@ -462,6 +462,10 @@ int Agent::findUnitClause(list<list<int>> clauses) {
 	return 0;
 }
 
+int Agent::getAction() {
+	return 0;
+}
+
 void Agent::addClause(list<int> clause) {
 	knownClauses.push_back(clause);
 }

@@ -58,6 +58,7 @@ namespace AgentNS {
 
 		Agent();
 		void updateKnowledgeBase(std::list<int> literals);
+		int getAction();
 		void printKnownLiterals();
 
 		// Methods for testing.

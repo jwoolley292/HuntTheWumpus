@@ -15,7 +15,10 @@ Application::Application() {
 void Application::mainMenu() {
 	cout << "1: Play on random map\n";
 	cout << "2: Play on set map\n";
-	cout << "3: Exit\n";
+	cout << "3: Agent on random map\n";
+	cout << "4: Agent on set map\n";
+	cout << "5: Agent on multiple maps\n";
+	cout << "6: Exit\n";
 	cout << "\n";
 
 	string command = "";
@@ -26,20 +29,36 @@ void Application::mainMenu() {
 
 		if (command.compare("1") == 0) {
 			game = Game();
-			agent = Agent();
-			cout << game.drawFullMap() << "\n\n";
-			agent.updateKnowledgeBase(generateMoveUpdate());
 			gameMenu();
 		}
 		else if (command.compare("2") == 0) {
-			getSeed();
+			game = Game(getSeed());
+			cout << game.drawFullMap() << "\n\n";
+			gameMenu();
 		}
 		else if (command.compare("3") == 0) {
+			game = Game();
+			agent = Agent();
+			cout << game.drawFullMap() << "\n\n";
+			agentPlay();
+			mainMenu();
+		}
+		else if (command.compare("4") == 0) {
+			game = Game(getSeed());
+			agent = Agent();
+			cout << game.drawFullMap() << "\n\n";
+			agentPlay();
+			mainMenu();
+		}
+		else if (command.compare("5") == 0) {
+
+		}
+		else if (command.compare("6") == 0) {
 			exit(0);
 		}
 		else {
 			command = "";
-			cout << "Please enter a number between 1 and 3\n\n";
+			cout << "Please enter a number between 1 and 6\n\n";
 		}
 	}
 }
@@ -48,7 +67,7 @@ Gets and validates a seed for generating a map. The seed is an string containing
 wumpus and the gold. Additional characters relate to traps. For example, 11302112 produces a map with the wumpus at(1, 1), the gold at(3, 0) and traps at
 (2, 1) and (1, 2).
 */
-void Application::getSeed() {
+string Application::getSeed() {
 	cout << "Input seed\n\n";
 
 	string seed = "";
@@ -91,9 +110,7 @@ void Application::getSeed() {
 			seed = "";
 		}
 	}
-	game = Game(seed);
-	cout << game.drawFullMap() << "\n\n";
-	gameMenu();
+	return seed;
 }
 
 // Draws the map showing the player and exit locations, then takes the players input.
@@ -176,13 +193,9 @@ void Application::move(int direction) {
 		mainMenu();
 	}
 	else if (result == Game::EMPTY_ROOM) {
-		agent.updateKnowledgeBase(generateMoveUpdate());
 		gameMenu();
 	}
 	else if (result == Game::FOUND_GOLD) {
-		list<int> update = generateMoveUpdate();
-		update.push_back(Agent::GOLD_FOUND);
-		agent.updateKnowledgeBase(update);
 		if (!game.getGoldAquired()) {
 			cout << "You found gold!\n\n";
 		}
@@ -280,6 +293,48 @@ void Application::endGame() {
 		else {
 			command = "";
 			cout << "Enter y for yes or n for no\n\n";
+		}
+	}
+}
+
+int Application::agentPlay() {
+	agent.updateKnowledgeBase(generateMoveUpdate());
+	while (true) {
+		int action = agent.getAction();
+		int result;
+		if (action <= Agent::MOVE_DOWN) {
+			result = game.move(action);
+			if (result == Game::DIED) {
+				cout << game.drawFullMap() << "\n\n";
+				cout << "You died! Your final score is: " << game.getScore() << "\n\n";
+				return game.getScore();
+			}
+			else if (result == Game::EMPTY_ROOM) {
+				agent.updateKnowledgeBase(generateMoveUpdate());
+			}
+			else if (result == Game::FOUND_GOLD) {
+				if (!game.getGoldAquired()) {
+					cout << "You found gold!\n\n";
+				}
+				agent.updateKnowledgeBase(list<int> { Agent::GOLD_FOUND });
+				agent.updateKnowledgeBase(generateMoveUpdate());
+			}
+		}
+		else if (action <= Agent::SHOOT_DOWN) {
+			result = game.shoot(action - 4);
+			if (result == Game::MISSED) {
+				cout << "Your arrow disappears silently into the darkness\n\n";
+				agent.updateKnowledgeBase({ -Agent::SHOT_HIT });
+			}
+			else if (result == Game::HIT) {
+				cout << "You hear an agonised cry from the darkness\n\n";
+				agent.updateKnowledgeBase({ Agent::SHOT_HIT });
+			}
+		}
+		else {
+			result = game.escape();
+			cout << "You escaped! Your final score is: " << result << "\n\n";
+			return result;
 		}
 	}
 }

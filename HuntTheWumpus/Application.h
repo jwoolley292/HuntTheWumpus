@@ -11,13 +11,14 @@ namespace ApplicationNS {
 		GameNS::Game game;
 		AgentNS::Agent agent;
 		void gameMenu();
-		void getSeed();
+		std::string getSeed();
 
 		void move(int direction);
 		void shoot();
 		void escape();
 		void endGame();
 
+		int agentPlay();
 		std::list<int> generateMoveUpdate();
 
 		void printSenses();
