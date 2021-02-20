@@ -196,9 +196,7 @@ void Application::move(int direction) {
 		gameMenu();
 	}
 	else if (result == Game::FOUND_GOLD) {
-		if (!game.getGoldAquired()) {
-			cout << "You found gold!\n\n";
-		}
+		cout << "You found gold!\n\n";
 		gameMenu();
 	}
 }
@@ -298,9 +296,13 @@ void Application::endGame() {
 }
 
 int Application::agentPlay() {
-	agent.updateKnowledgeBase(generateMoveUpdate());
 	while (true) {
+		cout << game.drawPlayerMap() << "\n\n";
+		printSenses();
+
+		agent.updateKnowledgeBase(generateMoveUpdate());
 		int action = agent.getAction();
+
 		int result;
 		if (action <= Agent::MOVE_DOWN) {
 			result = game.move(action);
@@ -309,15 +311,11 @@ int Application::agentPlay() {
 				cout << "You died! Your final score is: " << game.getScore() << "\n\n";
 				return game.getScore();
 			}
-			else if (result == Game::EMPTY_ROOM) {
-				agent.updateKnowledgeBase(generateMoveUpdate());
-			}
 			else if (result == Game::FOUND_GOLD) {
 				if (!game.getGoldAquired()) {
 					cout << "You found gold!\n\n";
 				}
-				agent.updateKnowledgeBase(list<int> { Agent::GOLD_FOUND });
-				agent.updateKnowledgeBase(generateMoveUpdate());
+				agent.updateKnowledgeBase(list<int> { Agent::GOLD_AQUIRED });
 			}
 		}
 		else if (action <= Agent::SHOOT_DOWN) {

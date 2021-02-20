@@ -82,7 +82,7 @@ vector<Room> Map::initialiseSetRooms(string seed) {
 	r.at(x + 4 * y) = Room(Room::GOLD);
 	seed = seed.substr(2, seed.length() - 2);
 
-	for (int i = 1; 1 < 16; i++) {
+	while(!seed.empty()) {
 		x = seed.at(0) - '0';
 		y = seed.at(1) - '0';
 		r.at(x + 4 * y) = Room(Room::TRAP);

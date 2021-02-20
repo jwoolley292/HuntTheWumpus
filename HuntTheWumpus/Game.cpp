@@ -60,7 +60,7 @@ int Game::move(int direction) {
 		score += DEATH_SCORE;
 		return DIED;
 	}
-	else if (target->getContents() == Room::GOLD) {
+	else if (target->getContents() == Room::GOLD && !goldAquired) {
 		goldAquired = true;
 		return FOUND_GOLD;
 	}

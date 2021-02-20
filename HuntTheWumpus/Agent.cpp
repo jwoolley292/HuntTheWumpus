@@ -1,8 +1,10 @@
 #include "Agent.h"
 #include <iostream>
+#include <queue>
 
 using namespace AgentNS;
 using namespace GameNS;
+using namespace RouteNS;
 using namespace std;
 
 Agent::Agent() {
@@ -130,6 +132,23 @@ is also added.
 */
 void Agent::updateKnowledgeBase(list<int> literals) {
 	// Add new information to the knowledge base.
+	currentLocation = (literals.front() - 1) % 16;
+	if (find(visited.begin(), visited.end(), currentLocation) == visited.end()) {
+		visited.push_back(currentLocation);
+		if (currentLocation > 3 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation - 4) == visitedAdjacent.end()) {
+			visitedAdjacent.push_back(currentLocation - 4);
+		}
+		if (currentLocation < 12 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation + 4) == visitedAdjacent.end()) {
+			visitedAdjacent.push_back(currentLocation + 4);
+		}
+		if (currentLocation % 4 != 3 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation + 1) == visitedAdjacent.end()) {
+			visitedAdjacent.push_back(currentLocation + 1);
+		}
+		if (currentLocation % 4 != 0 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation - 1) == visitedAdjacent.end()) {
+			visitedAdjacent.push_back(currentLocation - 1);
+		}
+	}
+
 	for (list<int>::iterator i = literals.begin(); i != literals.end(); i++) {
 		if (find(knownLiterals.begin(), knownLiterals.end(), *i) == knownLiterals.end()) {
 			knownLiterals.push_back(*i);
@@ -165,7 +184,6 @@ void Agent::updateKnowledgeBase(list<int> literals) {
 			if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
 				literals.push_back(-*i);
 				updateKnowledgeBase(literals);
-				printKnownLiterals();
 				break;
 			}
 
@@ -176,7 +194,6 @@ void Agent::updateKnowledgeBase(list<int> literals) {
 			if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
 				literals.push_back(*i);
 				updateKnowledgeBase(literals);
-				printKnownLiterals();
 				break;
 			}
 		}
@@ -212,6 +229,7 @@ list<list<int>> Agent::simplifyClauses(list<list<int>> clauses, int l) {
 /*
 Reorders the unknown literals such that guesses which are more likely to be successful are attempted first.
 */
+// TODO: deal with both gold and wumpus
 void Agent::prioritiseUnknownLiterals(list<int> literals) {
 	list<int> prioritisedLiterals;
 	list<int> unprioritisedLiterals = unknownLiterals;
@@ -437,7 +455,7 @@ int Agent::findPureLiteral(list<list<int>> clauses, list<int> literals) {
 				}
 			}
 		}
-
+		
 		if (pure == 1) {
 			return *i;
 		}
@@ -462,8 +480,366 @@ int Agent::findUnitClause(list<list<int>> clauses) {
 	return 0;
 }
 
+/*
+Returns the next action the agent wishes to take.
+*/
 int Agent::getAction() {
+	bool wumpusDone = false;
+	bool goldDone = false;
+	int wumpusLocation = -1;
+	int goldLocation = -1;
+	bool stenchFound = false;
+	bool glistenFound = false;
+
+	for (list<int>::iterator i = knownLiterals.begin(); i != knownLiterals.end(); i++) {
+		if (*i == SHOT_HIT || *i == -SHOT_HIT) {
+			wumpusDone = true;
+		}
+		else if (*i == GOLD_AQUIRED || *i == -GOLD_AQUIRED) {
+			goldDone = true;
+		}
+		else if (*i >= WUMPUS && *i < WUMPUS + 16) {
+			wumpusLocation = *i - WUMPUS;
+		}
+		else if (*i >= GOLD && *i < GOLD + 16) {
+			goldLocation = *i - GOLD;
+		}
+		else if (*i >= STENCHY && *i < STENCHY + 16) {
+			stenchFound = true;
+		}
+		else if (*i >= GLISTENING && *i < GLISTENING + 16) {
+			glistenFound = true;
+		}
+	}
+
+	// If the Wumpus and gold are done,  escape.
+	if (wumpusDone && goldDone) {
+		cout << "\nESCAPE\n------\n\n";
+		return escape();
+	}
+
+	// If the location of the gold is known, but it is not done, pathfind to the gold and collect it.
+	if (!goldDone && goldLocation != -1) {
+		cout << "\nCOLLECT GOLD\n------------\n\n";
+		return collectGold(goldLocation);
+	}
+
+	// If the location of the Wumpus is known, but it is not done, pathfind to a square adjacent to it and shoot it.
+	if (!wumpusDone && wumpusLocation != -1) {
+		cout << "\nSHOOT WUMPUS\n------------\n\n";
+		return shootWumpus(wumpusLocation);
+	}
+
+	// If a glistening square has been found, explore squares adjacent to those where the gold could be.
+	if (!goldDone && glistenFound) {
+		cout << "\nFIND GOLD\n---------\n\n";
+		return findGold();
+	}
+
+	// If a stenchy square has been found, explore squares adjacent to those where the Wumpus could be.
+	if (!wumpusDone && stenchFound) {
+		cout << "\nFIND WUMPUS\n-----------\n\n";
+		return findWumpus();
+	}
+
+	// Otherwise, explore unknown cells.
+	else {
+		cout << "\nEXPLORE\n-------\n\n";
+		return explore();
+	}
+
 	return 0;
+}
+
+int Agent::escape() {
+	if (currentLocation == 0) {
+		return ESCAPE;
+	}
+	else {
+		return pathFind(list<int> {0});
+	}
+}
+
+int Agent::collectGold(int location) {
+	int action = pathFind(list<int>{location});
+	if (action == 0) {
+		knownLiterals.push_back(-GOLD_AQUIRED);
+		return getAction();
+	}
+	else {
+		return action;
+	}
+}
+
+int Agent::shootWumpus(int location) {
+	list<int> goals;
+	if (location > 3) {
+		if (currentLocation == location - 4) {
+			return SHOOT_DOWN;
+		}
+		goals.push_back(location - 4);
+	}
+	if (location < 12) {
+		if (currentLocation == location + 4) {
+			return SHOOT_UP;
+		}
+		goals.push_back(location + 4);
+	}
+	if (location % 4 != 0) {
+		if (currentLocation == location - 1) {
+			return SHOOT_RIGHT;
+		}
+		goals.push_back(location - 1);
+	}
+	if (location % 4 != 3) {
+		if (currentLocation == location + 1) {
+			return SHOOT_LEFT;
+		}
+		goals.push_back(location + 1);
+	}
+
+	int action = pathFind(goals);
+	if (action == 0) {
+		knownLiterals.push_back(-SHOT_HIT);
+		return getAction();
+	}
+	else {
+		return action;
+	}
+}
+
+int Agent::findGold() {
+	list<int> possibleGold;
+	for (int i = 0; i < 16; i++) {
+		possibleGold.push_back(i);
+	}
+	for (list<int>::iterator i = knownLiterals.begin(); i != knownLiterals.end(); i++) {
+		if (*i <= -GOLD && *i > -(GOLD + 16)) {
+			possibleGold.remove(-*i - GOLD);
+		}
+	}
+
+	int action = pathFind(possibleGold);
+	if (action == 0) {
+		knownLiterals.push_back(-GOLD_AQUIRED);
+		return getAction();
+	}
+	else {
+		return action;
+	}
+}
+
+int Agent::findWumpus() {
+	list<int> possibleWumpus;
+	for (int i = 0; i < 16; i++) {
+		possibleWumpus.push_back(i);
+	}
+	for (list<int>::iterator i = knownLiterals.begin(); i != knownLiterals.end(); i++) {
+		if (*i <= -WUMPUS && *i > -(WUMPUS + 16)) {
+			possibleWumpus.remove(-*i - WUMPUS);
+		}
+	}
+
+	list<int> goals;
+	for (list<int>::iterator i = possibleWumpus.begin(); i != possibleWumpus.end(); i++) {
+		if (*i > 3 && find(goals.begin(), goals.end(), *i - 4) == goals.end() && find(visited.begin(), visited.end(), *i - 4) == visited.end()) {
+			goals.push_back(*i - 4);
+		}
+		if (*i < 12 && find(goals.begin(), goals.end(), *i + 4) == goals.end() && find(visited.begin(), visited.end(), *i + 4) == visited.end()) {
+			goals.push_back(*i + 4);
+		}
+		if (*i % 4 != 0 && find(goals.begin(), goals.end(), *i - 1) == goals.end() && find(visited.begin(), visited.end(), *i - 1) == visited.end()) {
+			goals.push_back(*i - 1);
+		}
+		if (*i % 4 != 3 && find(goals.begin(), goals.end(), *i + 1) == goals.end() && find(visited.begin(), visited.end(), *i + 1) == visited.end()) {
+			goals.push_back(*i + 1);
+		}
+	}
+
+	int action = pathFind(goals);
+	if (action == 0) {
+		knownLiterals.push_back(-SHOT_HIT);
+		return getAction();
+	}
+	else {
+		return action;
+	}
+}
+
+int Agent::explore() {
+	list<int> goals;
+	for (int i = 0; i < 16; i++) {
+		goals.push_back(i);
+	}
+	for (list<int>::iterator i = knownLiterals.begin(); i != knownLiterals.end(); i++) {
+		if (*i >= EMPTY && *i < TRAP + 16) {
+			goals.remove((*i - 1) % 16);
+		}
+	}
+
+	int action = pathFind(goals);
+	if (action == 0) {
+		knownLiterals.push_back(-SHOT_HIT);
+		knownLiterals.push_back(-GOLD_AQUIRED);
+		return getAction();
+	}
+	else {
+		return action;
+	}
+}
+
+/*
+A variant of A* search which attempts to find the shortest route to one of the goal squares. It will never enter a square which is known to be unsafe and
+will prioritise routes which contain the fewest squares of unknown safety.
+*/
+int Agent::pathFind(list<int> goals) {
+	auto cmp = [&](Route left, Route right) { return estimateRouteDistance(left, goals) > estimateRouteDistance(right, goals); };
+	priority_queue<Route, vector<Route>, decltype(cmp)> safeRoutes(cmp);
+	priority_queue<Route, vector<Route>, decltype(cmp)> unsafeRoutes(cmp);
+	safeRoutes.push(Route(currentLocation));
+	list<int> queued;
+
+	cout << "Goals: ";
+	for (list<int>::iterator i = goals.begin(); i != goals.end(); i++) {
+		cout << *i << " ";
+	}
+	cout << "\n";
+	while (!safeRoutes.empty()) {
+		Route route = safeRoutes.top();
+		safeRoutes.pop();
+		int square = route.getCurrentSquare();
+		cout << "Current " << square << "\n";
+
+		if (find(goals.begin(), goals.end(), square) != goals.end()) {
+			cout << "Destination " << square << ", ";
+			cout << "Action: " << route.getFirstAction() << "\n\n";
+			return route.getFirstAction();
+		}
+
+		if (square > 3 && find(queued.begin(), queued.end(), square - 4) == queued.end()) {
+			queued.push_back(square - 4);
+			if (safeSquare(square - 4) == TRUE_INT) {
+				Route newRoute = route;
+				newRoute.update(MOVE_UP, square - 4);
+				safeRoutes.push(newRoute);
+			}
+			else if (safeSquare(square - 4) == NULL_INT) {
+				Route newRoute = route;
+				newRoute.update(MOVE_UP, square - 4);
+				unsafeRoutes.push(newRoute);
+			}
+		}
+		if (square % 4 != 0 && find(queued.begin(), queued.end(), square - 1) == queued.end()) {
+			queued.push_back(square - 1);
+			if (safeSquare(square - 1) == TRUE_INT) {
+				Route newRoute = route;
+				newRoute.update(MOVE_LEFT, square - 1);
+				safeRoutes.push(newRoute);
+			}
+			else if (safeSquare(square - 1) == NULL_INT) {
+				Route newRoute = route;
+				newRoute.update(MOVE_LEFT, square - 1);
+				unsafeRoutes.push(newRoute);
+			}
+		}
+		if (square < 12 && find(queued.begin(), queued.end(), square + 4) == queued.end()) {
+			queued.push_back(square + 4);
+			if (safeSquare(square + 4) == TRUE_INT) {
+				Route newRoute = route;
+				newRoute.update(MOVE_DOWN, square + 4);
+				safeRoutes.push(newRoute);
+			}
+			else if (safeSquare(square + 4) == NULL_INT) {
+				Route newRoute = route;
+				newRoute.update(MOVE_DOWN, square + 4);
+				unsafeRoutes.push(newRoute);
+			}
+		}
+		if (square % 4 != 3 && find(queued.begin(), queued.end(), square + 1) == queued.end()) {
+			queued.push_back(square + 1);
+			if (safeSquare(square + 1) == TRUE_INT) {
+				Route newRoute = route;
+				newRoute.update(MOVE_RIGHT, square + 1);
+				safeRoutes.push(newRoute);
+			}
+			else if (safeSquare(square + 1) == NULL_INT) {
+				Route newRoute = route;
+				newRoute.update(MOVE_RIGHT, square + 1);
+				unsafeRoutes.push(newRoute);
+			}
+		}
+
+		if (safeRoutes.empty() && !unsafeRoutes.empty()) {
+			safeRoutes.push(unsafeRoutes.top());
+			unsafeRoutes.pop();
+		}
+	}
+
+	return 0;
+}
+
+/*
+Returns the minimum movement actions required to reach one of the goals assuming the entire map is empty plus the number of actions already taken.
+*/
+int Agent::estimateRouteDistance(Route route, list<int> goals) {
+	int squareX = route.getCurrentSquare() % 4;
+	int squareY = route.getCurrentSquare() / 4;
+	int minimumDistance = 6;
+
+	for (list<int>::iterator i = goals.begin(); i != goals.end(); i++) {
+		int goalX = *i % 4;
+		int goalY = *i / 4;
+		int distance = abs(goalX - squareX) + abs(goalY - squareY);
+		if (distance < minimumDistance) {
+			minimumDistance = distance;
+		}
+	}
+
+	return minimumDistance + route.getLength();
+}
+
+/*
+Returns an integer representing the safety of the given square. True implies the square is definitely safe. Null implies the square could be either safe or
+unsafe. False implies the square is definitely unsafe. Squares the agent has not been adjacent to are assumed safe for the purpose of pathfinding.
+*/
+int Agent::safeSquare(int square) {
+	// Booleans representing the possible contents of the square.
+	bool empty = true;
+	bool wumpus = true;
+	bool gold = true;
+	bool trap = true;
+	bool wumpusAlive = true;
+
+	for (list<int>::iterator i = knownLiterals.begin(); i != knownLiterals.end(); i++) {
+		if (*i == -(EMPTY + square)) {
+			empty = false;
+		}
+		else if (*i == -(WUMPUS + square)) {
+			wumpus = false;
+		}
+		else if (*i == -(GOLD + square)) {
+			gold = false;
+		}
+		else if (*i == -(TRAP + square)) {
+			trap = false;
+		}
+		else if (*i == SHOT_HIT) {
+			wumpusAlive = false;
+		}
+	}
+
+	// A square is safe if it can't contain a trap and can't contain the wumpus whilst it's alive. If it could contain anything the agent hasn't been
+	// adjactent yet.
+	if ((!trap && (!wumpus || !wumpusAlive)) || find(visitedAdjacent.begin(), visitedAdjacent.end(), square) == visitedAdjacent.end()) {
+		return TRUE_INT;
+	}
+	// A square is unsafe if it can't contain the gold, a dead wumpus or be empty.
+	else if (!empty && !gold && !(wumpus && !wumpusAlive)) {
+		return FALSE_INT;
+	}
+	else {
+		return NULL_INT;
+	}
 }
 
 void Agent::addClause(list<int> clause) {
