@@ -7,6 +7,9 @@ Route::Route(int square) {
 	length = 0;
 }
 
+/*
+Takes in a new action and the square reached via that action and stores them.
+*/
 void Route::update(int action, int square) {
 	currentSquare = square;
 	actions.push_back(action);

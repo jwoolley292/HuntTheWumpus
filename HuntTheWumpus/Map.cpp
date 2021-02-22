@@ -6,7 +6,7 @@ using namespace MapNS;
 using namespace RoomNS;
 using namespace std;
 
-// Default constructor for a random map.
+// Constructor for producing a random map.
 Map::Map() {
 	rooms = initialiseRandomRooms();
 	connectRooms();
@@ -32,6 +32,7 @@ vector<Room> Map::initialiseRandomRooms() {
 	r.at(1) = Room(Room::WUMPUS);
 	r.at(2) = Room(Room::GOLD);
 
+	// Give remaining rooms a 20% chance of containing a trap.
 	for (int i = 3; i < 16; i++) {
 		if (rand() % 5 == 1) {
 			r.at(i) = Room(Room::TRAP);
@@ -43,6 +44,7 @@ vector<Room> Map::initialiseRandomRooms() {
 
 	currentRoom = &r.at(0);
 
+	// Swap the Wumpus and Gold with a random location other than (0, 0).
 	for (int i = 1; i < 3; i++) {
 		int randNum = rand() % 15 + 1;
 		Room temp = r.at(randNum);
@@ -58,13 +60,14 @@ vector<Room> Map::initialiseRandomRooms() {
 }
 
 /*
-Builds a specific map based on the given seed. The seed is an string containing the coordinates of the map contents. The first 4 characters relate to the
-wumpus and the gold. Additional characters relate to traps. For example, 11302112 produces a map with the wumpus at (1, 1), the gold at (3, 0) and traps at
-(2, 1) and (1, 2).
+Builds a specific map based on the given seed. The seed is a string containing the coordinates of the map contents. The first 4 characters
+relate to the wumpus and the gold. Additional characters relate to traps. For example, 11302112 produces a map with the wumpus at (1, 1),
+the gold at (3, 0) and traps at (2, 1) and (1, 2).
 */
 vector<Room> Map::initialiseSetRooms(string seed) {
 	vector<Room> r(32);
 
+	// Start with an empty map.
 	r.at(0) = Room(Room::EXIT);
 	for (int i = 1; i < 16; i++) {
 		r.at(i) = Room(Room::EMPTY);
@@ -72,16 +75,19 @@ vector<Room> Map::initialiseSetRooms(string seed) {
 
 	currentRoom = &r.at(0);
 	
+	// Insert the Wumpus.
 	int x = seed.at(0) - '0';
 	int y = seed.at(1) - '0';
 	r.at(x + 4 * y) = Room(Room::WUMPUS);
 	seed = seed.substr(2, seed.length() - 2);
 
+	// Insert the gold.
 	x = seed.at(0) - '0';
 	y = seed.at(1) - '0';
 	r.at(x + 4 * y) = Room(Room::GOLD);
 	seed = seed.substr(2, seed.length() - 2);
 
+	// Insert any traps.
 	while(!seed.empty()) {
 		x = seed.at(0) - '0';
 		y = seed.at(1) - '0';
@@ -241,4 +247,31 @@ Room* Map::getCurrentRoom() {
 
 void Map::setCurrentRoom(Room* room) {
 	currentRoom = room;
+}
+
+// Returns a seed that can be used to reproduce the map.
+string Map::getSeed() {
+	string seed = "";
+
+	for (int i = 0; i < 16; i++) {
+		if (rooms.at(i).getContents() == Room::WUMPUS) {
+			seed += to_string(i % 4) + to_string(i / 4);
+			break;
+		}
+	}
+
+	for (int i = 0; i < 16; i++) {
+		if (rooms.at(i).getContents() == Room::GOLD) {
+			seed += to_string(i % 4) + to_string(i / 4);
+			break;
+		}
+	}
+
+	for (int i = 0; i < 16; i++) {
+		if (rooms.at(i).getContents() == Room::TRAP) {
+			seed += to_string(i % 4) + to_string(i / 4);
+		}
+	}
+
+	return seed;
 }

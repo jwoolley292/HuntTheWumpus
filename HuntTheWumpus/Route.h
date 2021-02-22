@@ -1,7 +1,7 @@
 #pragma once
 #include <list>
 /*
-A class for holding a square reached when plotting a route, the first action taken and the number of actions taken so far.
+A class for holding a list of actions required to reach a given square.
 */
 namespace RouteNS {
 	class Route

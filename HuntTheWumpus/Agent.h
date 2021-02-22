@@ -17,6 +17,11 @@ namespace AgentNS {
 		std::list<int> visitedAdjacent;
 
 		void initialiseKnowledgeBase();
+		void setGuaranteedContents();
+		void squareContainsOneThing(int square);
+		void setUniqueContents(int square);
+		void associateContentsWithSenses(int square);
+		void associateSensesWithContents(int square);
 
 		std::list<std::list<int>> simplifyClauses(std::list<std::list<int>> clauses, int l);
 		void prioritiseUnknownLiterals(std::list<int> literals);
@@ -71,7 +76,7 @@ namespace AgentNS {
 		static const int ESCAPE = 9;
 
 		Agent();
-		void updateKnowledgeBase(std::list<int> literals);
+		void updateKnowledgeBase(int location, std::list<int> literals);
 		int getAction();
 		void printKnownLiterals();
 

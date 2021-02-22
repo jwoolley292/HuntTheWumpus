@@ -4,8 +4,8 @@
 #include <vector>
 
 /*
-A map is a 4 x 4 grid of rooms. The room at 0, 0 is the start point and exit and at the top left of the map. 1 wumpus, 1 gold and any number of traps are
-distributed amongst the remaining rooms.
+A map is a 4 x 4 grid of rooms. The room at (0, 0) is the start point and exit and at the top left of the map. 1 wumpus, 1 gold and any
+number of traps are distributed amongst the remaining rooms.
 */
 namespace MapNS {
 	class Map {
@@ -28,5 +28,6 @@ namespace MapNS {
 		std::list<int> getSenses();
 		RoomNS::Room* getCurrentRoom();
 		void setCurrentRoom(RoomNS::Room* room);
+		std::string getSeed();
 	};
 }

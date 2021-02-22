@@ -55,5 +55,6 @@ namespace GameNS {
 		std::list<int> getSenses();
 		int getArrows();
 		bool getGoldAquired();
+		std::string getSeed();
 	};
 }

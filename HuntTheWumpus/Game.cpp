@@ -6,7 +6,7 @@ using namespace MapNS;
 using namespace RoomNS;
 using namespace std;
 
-// Default constructor for a random map.
+// Constructor for a random map.
 Game::Game() {
 	map = Map();
 	wumpusAlive = true;
@@ -15,7 +15,7 @@ Game::Game() {
 	score = 0;
 }
 
-// Constructor for a map specified by a map code.
+// Constructor for a map specified by a seed.
 Game::Game(string seed) {
 	map = Map(seed);
 	wumpusAlive = true;
@@ -152,4 +152,8 @@ int Game::getArrows() {
 
 bool Game::getGoldAquired() {
 	return goldAquired;
+}
+
+string Game::getSeed() {
+	return map.getSeed();
 }

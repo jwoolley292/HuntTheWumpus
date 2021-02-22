@@ -11,16 +11,32 @@ Agent::Agent() {
 	initialiseKnowledgeBase();
 }
 
+/*
+Give the agent the rules of the game.
+*/
 void Agent::initialiseKnowledgeBase() {
 	// Set location to the enterance.
 	currentLocation = 0;
 
 	// Set all contents literals to unknown.
-	for (int i = EMPTY; i < SHOT_HIT + 16; i++) {
+	for (int i = EMPTY; i < TRAP + 16; i++) {
 		unknownLiterals.push_back(i);
 	}
 
-	// There is a Wumpus/gold/exit.
+	// Add the rules of the game to known clauses.
+	setGuaranteedContents();
+	for (int i = 0; i < 16; i++) {
+		squareContainsOneThing(i);
+		setUniqueContents(i);
+		associateContentsWithSenses(i);
+		associateSensesWithContents(i);
+	}
+}
+
+/*
+Add clauses saying there is at least one Wumpus/gold/exit.
+*/
+void Agent::setGuaranteedContents() {
 	list<int> wumpusList;
 	list<int> goldList;
 	list<int> exitList;
@@ -33,106 +49,115 @@ void Agent::initialiseKnowledgeBase() {
 	knownClauses.push_back(wumpusList);
 	knownClauses.push_back(goldList);
 	knownClauses.push_back(exitList);
+}
 
-	// Fill clauses with the rules of the game.
-	for (int i = 0; i < 16; i++) {
-		// Each square contains something.
-		knownClauses.push_back(list<int>{(WUMPUS + i), (GOLD + i), (TRAP + i), (EXIT + i), (EMPTY + i)});
+/*
+Add clauses stating that each square contains exactly one thing.
+*/
+void Agent::squareContainsOneThing(int square) {
+	// Each square contains something.
+	knownClauses.push_back(list<int>{(WUMPUS + square), (GOLD + square), (TRAP + square), (EXIT + square), (EMPTY + square)});
 
-		// If a square contains one thing, it cannot contain another.
-		knownClauses.push_back(list<int>{-(WUMPUS + i), -(GOLD + i)});
-		knownClauses.push_back(list<int>{-(WUMPUS + i), -(TRAP + i)});
-		knownClauses.push_back(list<int>{-(WUMPUS + i), -(EXIT + i)});
-		knownClauses.push_back(list<int>{-(WUMPUS + i), -(EMPTY + i)});
+	// If a square contains one thing, it cannot contain another.
+	knownClauses.push_back(list<int>{-(WUMPUS + square), -(GOLD + square)});
+	knownClauses.push_back(list<int>{-(WUMPUS + square), -(TRAP + square)});
+	knownClauses.push_back(list<int>{-(WUMPUS + square), -(EXIT + square)});
+	knownClauses.push_back(list<int>{-(WUMPUS + square), -(EMPTY + square)});
 
-		knownClauses.push_back(list<int>{-(GOLD + i), -(TRAP + i)});
-		knownClauses.push_back(list<int>{-(GOLD + i), -(EXIT + i)});
-		knownClauses.push_back(list<int>{-(GOLD + i), -(EMPTY + i)});
+	knownClauses.push_back(list<int>{-(GOLD + square), -(TRAP + square)});
+	knownClauses.push_back(list<int>{-(GOLD + square), -(EXIT + square)});
+	knownClauses.push_back(list<int>{-(GOLD + square), -(EMPTY + square)});
 
-		knownClauses.push_back(list<int>{-(TRAP + i), -(EXIT + i)});
-		knownClauses.push_back(list<int>{-(TRAP + i), -(EMPTY + i)});
+	knownClauses.push_back(list<int>{-(TRAP + square), -(EXIT + square)});
+	knownClauses.push_back(list<int>{-(TRAP + square), -(EMPTY + square)});
 
-		knownClauses.push_back(list<int>{-(EXIT + i), -(EMPTY + i)});
+	knownClauses.push_back(list<int>{-(EXIT + square), -(EMPTY + square)});
+}
 
-		// The Wumpus/gold/exit cannot exist in two squares.
-		for (int j = i + 1; j < 16; j++) {
-			knownClauses.push_back(list<int>{-(WUMPUS + i), -(WUMPUS + j)});
-			knownClauses.push_back(list<int>{-(GOLD + i), -(GOLD + j)});
-			knownClauses.push_back(list<int>{-(EXIT + i), -(EXIT + j)});
-		}
-
-		bool rightEdge = i % 4 == 3;
-		bool leftEdge = i % 4 == 0;
-		bool topEdge = i < 4;
-		bool bottomEdge = i > 11;
-
-		// If a square contains the Wumpus/gold/a trap, its neigbours are stenchy/glistening/breezy.
-		if (!rightEdge) {
-			knownClauses.push_back(list<int>{-(WUMPUS + i), (STENCHY + i + 1)});
-			knownClauses.push_back(list<int>{-(GOLD + i), (GLISTENING + i + 1)});
-			knownClauses.push_back(list<int>{-(TRAP + i), (BREEZY + i + 1)});
-		}
-
-		if (!leftEdge) {
-			knownClauses.push_back(list<int>{-(WUMPUS + i), (STENCHY + i - 1)});
-			knownClauses.push_back(list<int>{-(GOLD + i), (GLISTENING + i - 1)});
-			knownClauses.push_back(list<int>{-(TRAP + i), (BREEZY + i - 1)});
-		}
-
-		if (!topEdge) {
-			knownClauses.push_back(list<int>{-(WUMPUS + i), (STENCHY + i - 4)});
-			knownClauses.push_back(list<int>{-(GOLD + i), (GLISTENING + i - 4)});
-			knownClauses.push_back(list<int>{-(TRAP + i), (BREEZY + i - 4)});
-		}
-
-		if (!bottomEdge) {
-			knownClauses.push_back(list<int>{-(WUMPUS + i), (STENCHY + i + 4)});
-			knownClauses.push_back(list<int>{-(GOLD + i), (GLISTENING + i + 4)});
-			knownClauses.push_back(list<int>{-(TRAP + i), (BREEZY + i + 4)});
-		}
-
-		// If a square is stenchy/glistening/breezy at least one adjacent square contains the Wumpus/gold/a trap.
-		list<int> stenchyList{-(STENCHY + i)};
-		list<int> glisteningList{-(GLISTENING + i)};
-		list<int> breezyList{-(BREEZY + i)};
-
-		if (!rightEdge) {
-			stenchyList.push_back(WUMPUS + i + 1);
-			glisteningList.push_back(GOLD + i + 1);
-			breezyList.push_back(TRAP + i + 1);
-		}
-
-		if (!leftEdge) {
-			stenchyList.push_back(WUMPUS + i - 1);
-			glisteningList.push_back(GOLD + i - 1);
-			breezyList.push_back(TRAP + i - 1);
-		}
-
-		if (!topEdge) {
-			stenchyList.push_back(WUMPUS + i - 4);
-			glisteningList.push_back(GOLD + i - 4);
-			breezyList.push_back(TRAP + i - 4);
-		}
-
-		if (!bottomEdge) {
-			stenchyList.push_back(WUMPUS + i + 4);
-			glisteningList.push_back(GOLD + i + 4);
-			breezyList.push_back(TRAP + i + 4);
-		}
-
-		knownClauses.push_back(stenchyList);
-		knownClauses.push_back(glisteningList);
-		knownClauses.push_back(breezyList);
+/*
+Add clauses stating there is only one Wumpus/gold/exit.
+*/
+void Agent::setUniqueContents(int square) {
+	for (int j = square + 1; j < 16; j++) {
+		knownClauses.push_back(list<int>{-(WUMPUS + square), -(WUMPUS + j)});
+		knownClauses.push_back(list<int>{-(GOLD + square), -(GOLD + j)});
+		knownClauses.push_back(list<int>{-(EXIT + square), -(EXIT + j)});
 	}
+}
+
+/*
+Add clauses stating that if a square contains the Wumpus/gold/a trap, it and its neighbours are stenchy/glistening/breezy.
+*/
+void Agent::associateContentsWithSenses(int square) {
+	if (square % 4 != 3) {
+		knownClauses.push_back(list<int>{-(WUMPUS + square), (STENCHY + square + 1)});
+		knownClauses.push_back(list<int>{-(GOLD + square), (GLISTENING + square + 1)});
+		knownClauses.push_back(list<int>{-(TRAP + square), (BREEZY + square + 1)});
+	}
+
+	if (square % 4 != 0) {
+		knownClauses.push_back(list<int>{-(WUMPUS + square), (STENCHY + square - 1)});
+		knownClauses.push_back(list<int>{-(GOLD + square), (GLISTENING + square - 1)});
+		knownClauses.push_back(list<int>{-(TRAP + square), (BREEZY + square - 1)});
+	}
+
+	if (square > 3) {
+		knownClauses.push_back(list<int>{-(WUMPUS + square), (STENCHY + square - 4)});
+		knownClauses.push_back(list<int>{-(GOLD + square), (GLISTENING + square - 4)});
+		knownClauses.push_back(list<int>{-(TRAP + square), (BREEZY + square - 4)});
+	}
+
+	if (square < 12) {
+		knownClauses.push_back(list<int>{-(WUMPUS + square), (STENCHY + square + 4)});
+		knownClauses.push_back(list<int>{-(GOLD + square), (GLISTENING + square + 4)});
+		knownClauses.push_back(list<int>{-(TRAP + square), (BREEZY + square + 4)});
+	}
+}
+
+/*
+Add clauses stating that if a square is stenchy/glistening/breezy, at least one of it and its neighbours contains the Wumpus/gold/a trap.
+*/
+void Agent::associateSensesWithContents(int square) {
+	list<int> stenchyList{ -(STENCHY + square) };
+	list<int> glisteningList{ -(GLISTENING + square) };
+	list<int> breezyList{ -(BREEZY + square) };
+
+	if (square % 4 != 3) {
+		stenchyList.push_back(WUMPUS + square + 1);
+		glisteningList.push_back(GOLD + square + 1);
+		breezyList.push_back(TRAP + square + 1);
+	}
+
+	if (square % 4 != 0) {
+		stenchyList.push_back(WUMPUS + square - 1);
+		glisteningList.push_back(GOLD + square - 1);
+		breezyList.push_back(TRAP + square - 1);
+	}
+
+	if (square > 3) {
+		stenchyList.push_back(WUMPUS + square - 4);
+		glisteningList.push_back(GOLD + square - 4);
+		breezyList.push_back(TRAP + square - 4);
+	}
+
+	if (square < 12) {
+		stenchyList.push_back(WUMPUS + square + 4);
+		glisteningList.push_back(GOLD + square + 4);
+		breezyList.push_back(TRAP + square + 4);
+	}
+
+	knownClauses.push_back(stenchyList);
+	knownClauses.push_back(glisteningList);
+	knownClauses.push_back(breezyList);
 }
 
 /*
 Takes a list of new literals known to be true and adds them to the knowledge base. It then checks to see if any additional information can be inferred, which
 is also added.
 */
-void Agent::updateKnowledgeBase(list<int> literals) {
+void Agent::updateKnowledgeBase(int location, list<int> literals) {
 	// Add new information to the knowledge base.
-	currentLocation = (literals.front() - 1) % 16;
+	currentLocation = location;
 	if (find(visited.begin(), visited.end(), currentLocation) == visited.end()) {
 		visited.push_back(currentLocation);
 		if (currentLocation > 3 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation - 4) == visitedAdjacent.end()) {
@@ -168,7 +193,7 @@ void Agent::updateKnowledgeBase(list<int> literals) {
 		for (list<int>::iterator i = unitClauses.begin(); i != unitClauses.end(); i++) {
 			literals.push_back(*i);
 		}
-		updateKnowledgeBase(literals);
+		updateKnowledgeBase(currentLocation, literals);
 	}
 	else {
 		// Make inferences.
@@ -183,7 +208,7 @@ void Agent::updateKnowledgeBase(list<int> literals) {
 			cout << "GUESSING " << *i << ": ";
 			if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
 				literals.push_back(-*i);
-				updateKnowledgeBase(literals);
+				updateKnowledgeBase(currentLocation, literals);
 				break;
 			}
 
@@ -193,13 +218,17 @@ void Agent::updateKnowledgeBase(list<int> literals) {
 			cout << "GUESSING " << -*i << ": ";
 			if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
 				literals.push_back(*i);
-				updateKnowledgeBase(literals);
+				updateKnowledgeBase(currentLocation, literals);
 				break;
 			}
 		}
 	}
 }
 
+/*
+Removes a newly known literal from the set of clauses. This improves run time as the knowledge base being operated on is smaller. However, it does not allow for literals
+changing from true to false or vice versa as information about the literal is lost. This is acceptable in this case as the map does not change mid game.
+*/
 list<list<int>> Agent::simplifyClauses(list<list<int>> clauses, int l) {
 	list<list<int>>::iterator i = clauses.begin();
 	while (i != clauses.end()) {
@@ -229,24 +258,23 @@ list<list<int>> Agent::simplifyClauses(list<list<int>> clauses, int l) {
 /*
 Reorders the unknown literals such that guesses which are more likely to be successful are attempted first.
 */
-// TODO: deal with both gold and wumpus
 void Agent::prioritiseUnknownLiterals(list<int> literals) {
 	list<int> prioritisedLiterals;
 	list<int> unprioritisedLiterals = unknownLiterals;
 	list<int> prioritisedLocations = locationPriorities();
 
-	bool wumpus = false;
-	bool gold = false;
+	bool stenchFound = false;
+	bool glistenFound = false;
 	for (list<int>::iterator i = literals.begin(); i != literals.end(); i++) {
 		if ((*i >= STENCHY && *i < GLISTENING) || (*i >= WUMPUS && *i < GOLD)) {
-			wumpus = true;
+			stenchFound = true;
 		}
 		else if ((*i >= GLISTENING && *i < BREEZY) || (*i >= GOLD && *i < TRAP)) {
-			gold = true;
+			glistenFound = true;
 		}
 	}
 	// If the current square is stenchy, prioritise guessing the location of the Wumpus.
-	if (wumpus) {
+	if (stenchFound) {
 		for (list<int>::iterator j = prioritisedLocations.begin(); j != prioritisedLocations.end(); j++) {
 			if (find(unprioritisedLiterals.begin(), unprioritisedLiterals.end(), *j + WUMPUS) != unprioritisedLiterals.end()) {
 				prioritisedLiterals.push_front(*j + WUMPUS);
@@ -256,7 +284,7 @@ void Agent::prioritiseUnknownLiterals(list<int> literals) {
 	}
 	
 	// If the current square is glistening, prioritise guessing the location of the gold.
-	if (gold) {
+	if (glistenFound) {
 		for (list<int>::iterator j = prioritisedLocations.begin(); j != prioritisedLocations.end(); j++) {
 			if (find(unprioritisedLiterals.begin(), unprioritisedLiterals.end(), *j + GOLD) != unprioritisedLiterals.end()) {
 				prioritisedLiterals.push_front(*j + GOLD);
@@ -278,6 +306,10 @@ void Agent::prioritiseUnknownLiterals(list<int> literals) {
 		if (find(unprioritisedLiterals.begin(), unprioritisedLiterals.end(), *j + TRAP) != unprioritisedLiterals.end()) {
 			prioritisedLiterals.push_back(*j + TRAP);
 			unprioritisedLiterals.remove(*j + TRAP);
+		}
+		if (find(unprioritisedLiterals.begin(), unprioritisedLiterals.end(), *j + EMPTY) != unprioritisedLiterals.end()) {
+			prioritisedLiterals.push_back(*j + EMPTY);
+			unprioritisedLiterals.remove(*j + EMPTY);
 		}
 	}
 
@@ -551,6 +583,9 @@ int Agent::getAction() {
 	return 0;
 }
 
+/*
+If the agent is on the exit, escape. Otherwise pathfind to the exit.
+*/
 int Agent::escape() {
 	if (currentLocation == 0) {
 		return ESCAPE;
@@ -560,6 +595,10 @@ int Agent::escape() {
 	}
 }
 
+/*
+Pathfind to the gold. If no route is possible, even with assuming squares are safe, store that the gold is inaccessible and find a new
+action based on this.
+*/
 int Agent::collectGold(int location) {
 	int action = pathFind(list<int>{location});
 	if (action == 0) {
@@ -571,6 +610,10 @@ int Agent::collectGold(int location) {
 	}
 }
 
+/*
+If adjacent to the Wumpus, shoot it. Otherwise, pathfind to a square adjacent to the Wumpus. If no route is possible, even with assuming
+squares are safe, store that the gold is inaccessible and find a new action based on this.
+*/
 int Agent::shootWumpus(int location) {
 	list<int> goals;
 	if (location > 3) {
@@ -608,6 +651,9 @@ int Agent::shootWumpus(int location) {
 	}
 }
 
+/*
+Pathfind to locations the gold may be in.
+*/
 int Agent::findGold() {
 	list<int> possibleGold;
 	for (int i = 0; i < 16; i++) {
@@ -629,6 +675,9 @@ int Agent::findGold() {
 	}
 }
 
+/*
+Pathfind to locations that may be adjacent to the Wumpus.
+*/
 int Agent::findWumpus() {
 	list<int> possibleWumpus;
 	for (int i = 0; i < 16; i++) {
@@ -666,6 +715,9 @@ int Agent::findWumpus() {
 	}
 }
 
+/*
+Pathfind to squares with unknown contents.
+*/
 int Agent::explore() {
 	list<int> goals;
 	for (int i = 0; i < 16; i++) {

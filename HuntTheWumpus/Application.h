@@ -2,7 +2,7 @@
 #include "Game.h"
 #include "Agent.h"
 /*
-A console based application for playing Hunt the Wumpus or creating an agent to play.
+A console based application for playing Hunt the Wumpus or having an agent play.
 */
 namespace ApplicationNS {
 	class Application

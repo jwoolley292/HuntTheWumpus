@@ -1,4 +1,5 @@
 #include "Application.h"
+#include <fstream>;
 #include <iostream>
 
 using namespace ApplicationNS;
@@ -51,7 +52,37 @@ void Application::mainMenu() {
 			mainMenu();
 		}
 		else if (command.compare("5") == 0) {
+			string input = "";
+			int numberOfGames = 0;
+			
+			cout << "How many games should the agent play? \n\n";
+			while (numberOfGames == 0) {
+				cin >> input;
+				if (input.find_first_not_of("0123456789") == string::npos) {
+					numberOfGames = stoi(input);
+				}
+				if (numberOfGames > 0 && numberOfGames <= 1000) {
+					break;
+				}
+				else {
+					cout << "Enter a number between 1 and 1000.\n\n";
+					input = "";
+					numberOfGames = 0;
+				}
+			}
 
+			ofstream file;
+			file.open("Wumpus Stream.dat");
+
+			for (int i = 0; i < numberOfGames; i++) {
+				game = Game();
+				agent = Agent();
+				cout << game.drawFullMap() << "\n\n";
+				file << game.getSeed() << ",";
+				file << agentPlay() << "\n";
+			}
+
+			mainMenu();
 		}
 		else if (command.compare("6") == 0) {
 			exit(0);
@@ -76,7 +107,7 @@ string Application::getSeed() {
 		cout << "\n";
 
 		bool allCharactersValid = seed.find_first_not_of("0123") == string::npos;
-		bool correctLength = seed.length() <= 16 && seed.length() >= 4;
+		bool correctLength = seed.length() <= 14 && seed.length() >= 4;
 		bool evenNumOfChars = seed.length() % 2 == 0;
 
 		bool nothingAt00 = true;
@@ -297,10 +328,10 @@ void Application::endGame() {
 
 int Application::agentPlay() {
 	while (true) {
-		cout << game.drawPlayerMap() << "\n\n";
+		cout << "\n" << game.drawPlayerMap() << "\n\n";
 		printSenses();
 
-		agent.updateKnowledgeBase(generateMoveUpdate());
+		agent.updateKnowledgeBase(game.currentRoomIndex(), generateMoveUpdate());
 		int action = agent.getAction();
 
 		int result;
@@ -315,18 +346,18 @@ int Application::agentPlay() {
 				if (!game.getGoldAquired()) {
 					cout << "You found gold!\n\n";
 				}
-				agent.updateKnowledgeBase(list<int> { Agent::GOLD_AQUIRED });
+				agent.updateKnowledgeBase(game.currentRoomIndex(), list<int> { Agent::GOLD_AQUIRED });
 			}
 		}
 		else if (action <= Agent::SHOOT_DOWN) {
 			result = game.shoot(action - 4);
 			if (result == Game::MISSED) {
 				cout << "Your arrow disappears silently into the darkness\n\n";
-				agent.updateKnowledgeBase({ -Agent::SHOT_HIT });
+				agent.updateKnowledgeBase(game.currentRoomIndex(), { -Agent::SHOT_HIT });
 			}
 			else if (result == Game::HIT) {
 				cout << "You hear an agonised cry from the darkness\n\n";
-				agent.updateKnowledgeBase({ Agent::SHOT_HIT });
+				agent.updateKnowledgeBase(game.currentRoomIndex(), { Agent::SHOT_HIT });
 			}
 		}
 		else {

@@ -2,8 +2,8 @@
 #include <list>
 
 /*
-A room can contain one or none of the wumpus, the gold or a trap. A room adjacent to or containing the wumpus has a stench. A room adjacent
-to or containing gold glistens. A room adjactent to or containing a trap is breezy.
+A room can contain one or none of the wumpus, the gold, the exit or a trap. A room adjacent to or containing the wumpus has a stench. A room
+adjacent to or containing gold glistens. A room adjactent to or containing a trap is breezy.
 */
 namespace RoomNS{
 	class Room {
