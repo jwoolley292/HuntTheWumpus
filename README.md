@@ -30,6 +30,11 @@ The AI has a knowledge base built in conjunctive normal form which initially con
 now in as well as the state of that room. The agent uses DPLL to infer additional information whenever it discovers new information, after which it determines an appropriate
 action to take.
 
+Pathfinding is done using a variant of A* search which takes in multiple goal states and prioritises routes in which it doesn't have to guess if a room is safe. The heuristic
+used is the number of movement actions required to reach the closest goal assuming the agent can walk through any square (in other words the change in x plus the change in y).
+
 https://en.wikipedia.org/wiki/Conjunctive_normal_form
 
 https://en.wikipedia.org/wiki/DPLL_algorithm
+
+https://en.wikipedia.org/wiki/A*_search_algorithm
