@@ -326,6 +326,9 @@ void Application::endGame() {
 	}
 }
 
+/*
+Updates an agent with information about the outcome of its actions and gets and does its next action repeatedly until the game ends.
+*/
 int Application::agentPlay() {
 	while (true) {
 		cout << "\n" << game.drawPlayerMap() << "\n\n";

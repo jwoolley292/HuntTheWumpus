@@ -17,6 +17,38 @@ Game::Game() {
 
 // Constructor for a map specified by a seed.
 Game::Game(string seed) {
+	bool allCharactersValid = seed.find_first_not_of("0123") == string::npos;
+	bool correctLength = seed.length() <= 14 && seed.length() >= 4;
+	bool evenNumOfChars = seed.length() % 2 == 0;
+
+	bool nothingAt00 = true;
+	if (allCharactersValid && correctLength && evenNumOfChars) {
+		for (int i = 0; i < seed.length(); i += 2) {
+			if (seed.substr(i, 2).compare("00") == 0) {
+				nothingAt00 = false;
+				break;
+			}
+		}
+	}
+
+	bool noRepititions = true;
+	if (allCharactersValid && correctLength && evenNumOfChars && nothingAt00) {
+		for (int i = 0; i < seed.length(); i += 2) {
+			string sub1 = seed.substr(i, 2);
+			for (int j = i + 2; j < seed.length(); j += 2) {
+				string sub2 = seed.substr(j, 2);
+				if (sub1.compare(sub2) == 0) {
+					noRepititions = false;
+					break;
+				}
+			}
+		}
+	}
+
+	if (!allCharactersValid || !correctLength || !evenNumOfChars || !nothingAt00 || !noRepititions) {
+		throw "Invalid seed";
+	}
+
 	map = Map(seed);
 	wumpusAlive = true;
 	goldAquired = false;

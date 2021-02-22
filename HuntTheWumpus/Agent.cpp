@@ -55,6 +55,10 @@ void Agent::setGuaranteedContents() {
 Add clauses stating that each square contains exactly one thing.
 */
 void Agent::squareContainsOneThing(int square) {
+	if (square < 0 || square > 15) {
+		throw "Invalid input: square must be between 0 and 15";
+	}
+
 	// Each square contains something.
 	knownClauses.push_back(list<int>{(WUMPUS + square), (GOLD + square), (TRAP + square), (EXIT + square), (EMPTY + square)});
 
@@ -78,6 +82,10 @@ void Agent::squareContainsOneThing(int square) {
 Add clauses stating there is only one Wumpus/gold/exit.
 */
 void Agent::setUniqueContents(int square) {
+	if (square < 0 || square > 15) {
+		throw "Invalid input: square must be between 0 and 15";
+	}
+
 	for (int j = square + 1; j < 16; j++) {
 		knownClauses.push_back(list<int>{-(WUMPUS + square), -(WUMPUS + j)});
 		knownClauses.push_back(list<int>{-(GOLD + square), -(GOLD + j)});
@@ -89,6 +97,10 @@ void Agent::setUniqueContents(int square) {
 Add clauses stating that if a square contains the Wumpus/gold/a trap, it and its neighbours are stenchy/glistening/breezy.
 */
 void Agent::associateContentsWithSenses(int square) {
+	if (square < 0 || square > 15) {
+		throw "Invalid input: square must be between 0 and 15";
+	}
+
 	if (square % 4 != 3) {
 		knownClauses.push_back(list<int>{-(WUMPUS + square), (STENCHY + square + 1)});
 		knownClauses.push_back(list<int>{-(GOLD + square), (GLISTENING + square + 1)});
@@ -118,6 +130,10 @@ void Agent::associateContentsWithSenses(int square) {
 Add clauses stating that if a square is stenchy/glistening/breezy, at least one of it and its neighbours contains the Wumpus/gold/a trap.
 */
 void Agent::associateSensesWithContents(int square) {
+	if (square < 0 || square > 15) {
+		throw "Invalid input: square must be between 0 and 15";
+	}
+
 	list<int> stenchyList{ -(STENCHY + square) };
 	list<int> glisteningList{ -(GLISTENING + square) };
 	list<int> breezyList{ -(BREEZY + square) };
@@ -156,24 +172,19 @@ Takes a list of new literals known to be true and adds them to the knowledge bas
 is also added.
 */
 void Agent::updateKnowledgeBase(int location, list<int> literals) {
-	// Add new information to the knowledge base.
-	currentLocation = location;
-	if (find(visited.begin(), visited.end(), currentLocation) == visited.end()) {
-		visited.push_back(currentLocation);
-		if (currentLocation > 3 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation - 4) == visitedAdjacent.end()) {
-			visitedAdjacent.push_back(currentLocation - 4);
-		}
-		if (currentLocation < 12 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation + 4) == visitedAdjacent.end()) {
-			visitedAdjacent.push_back(currentLocation + 4);
-		}
-		if (currentLocation % 4 != 3 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation + 1) == visitedAdjacent.end()) {
-			visitedAdjacent.push_back(currentLocation + 1);
-		}
-		if (currentLocation % 4 != 0 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation - 1) == visitedAdjacent.end()) {
-			visitedAdjacent.push_back(currentLocation - 1);
+	if (location < 0 || location > 15) {
+		throw "Invalid input: location must be between 0 and 15";
+	}
+
+	for (list<int>::iterator i = literals.begin(); i != literals.end(); i++) {
+		if (*i == 0 || *i < -GOLD_AQUIRED || *i > GOLD_AQUIRED) {
+			throw "Invalid input: literal " + to_string(*i) + " does not exist";
 		}
 	}
 
+	updateVisited(location);
+
+	// Add new known literals.
 	for (list<int>::iterator i = literals.begin(); i != literals.end(); i++) {
 		if (find(knownLiterals.begin(), knownLiterals.end(), *i) == knownLiterals.end()) {
 			knownLiterals.push_back(*i);
@@ -196,31 +207,30 @@ void Agent::updateKnowledgeBase(int location, list<int> literals) {
 		updateKnowledgeBase(currentLocation, literals);
 	}
 	else {
-		// Make inferences.
 		prioritiseUnknownLiterals(literals);
-		for (list<int>::iterator i = unknownLiterals.begin(); i != unknownLiterals.end(); i++) {
-			list<int> newUnknownLiterals = unknownLiterals;
-			list<int> newKnownLiterals = knownLiterals;
+		makeInferences(literals);
+	}
+}
 
-			newUnknownLiterals.remove(*i);
-			newKnownLiterals.push_back(*i);
-
-			cout << "GUESSING " << *i << ": ";
-			if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
-				literals.push_back(-*i);
-				updateKnowledgeBase(currentLocation, literals);
-				break;
-			}
-
-			newKnownLiterals.remove(*i);
-			newKnownLiterals.push_back(-*i);
-
-			cout << "GUESSING " << -*i << ": ";
-			if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
-				literals.push_back(*i);
-				updateKnowledgeBase(currentLocation, literals);
-				break;
-			}
+/*
+Updates the current location of the agent, records that the agent has visited the new square and that it has been adjacent to the new
+square's neighbours.
+*/
+void Agent::updateVisited(int location) {
+	currentLocation = location;
+	if (find(visited.begin(), visited.end(), currentLocation) == visited.end()) {
+		visited.push_back(currentLocation);
+		if (currentLocation > 3 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation - 4) == visitedAdjacent.end()) {
+			visitedAdjacent.push_back(currentLocation - 4);
+		}
+		if (currentLocation < 12 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation + 4) == visitedAdjacent.end()) {
+			visitedAdjacent.push_back(currentLocation + 4);
+		}
+		if (currentLocation % 4 != 3 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation + 1) == visitedAdjacent.end()) {
+			visitedAdjacent.push_back(currentLocation + 1);
+		}
+		if (currentLocation % 4 != 0 && find(visitedAdjacent.begin(), visitedAdjacent.end(), currentLocation - 1) == visitedAdjacent.end()) {
+			visitedAdjacent.push_back(currentLocation - 1);
 		}
 	}
 }
@@ -349,6 +359,37 @@ list<int> Agent::locationPriorities() {
 	}
 
 	return prioritisedLocations;
+}
+
+/*
+Guesses assignments for each of the unknown literals and tries to find a model in which the assignment is valid. If it can't the opposite
+assignment must be true and so is added to the knowledge base.
+*/
+void Agent::makeInferences(list<int> literals) {
+	for (list<int>::iterator i = unknownLiterals.begin(); i != unknownLiterals.end(); i++) {
+		list<int> newUnknownLiterals = unknownLiterals;
+		list<int> newKnownLiterals = knownLiterals;
+
+		newUnknownLiterals.remove(*i);
+		newKnownLiterals.push_back(*i);
+
+		cout << "GUESSING " << *i << ": ";
+		if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
+			literals.push_back(-*i);
+			updateKnowledgeBase(currentLocation, literals);
+			break;
+		}
+
+		newKnownLiterals.remove(*i);
+		newKnownLiterals.push_back(-*i);
+
+		cout << "GUESSING " << -*i << ": ";
+		if (!DPLL(knownClauses, newUnknownLiterals, newKnownLiterals)) {
+			literals.push_back(*i);
+			updateKnowledgeBase(currentLocation, literals);
+			break;
+		}
+	}
 }
 
 /*

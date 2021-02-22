@@ -24,8 +24,10 @@ namespace AgentNS {
 		void associateSensesWithContents(int square);
 
 		std::list<std::list<int>> simplifyClauses(std::list<std::list<int>> clauses, int l);
+		void updateVisited(int location);
 		void prioritiseUnknownLiterals(std::list<int> literals);
 		std::list<int> locationPriorities();
+		void makeInferences(std::list<int> literals);
 
 		bool DPLL(std::list<std::list<int>> clauses, std::list<int> literals, std::list<int> partialModel);
 		int checkModel(std::list<std::list<int>> clauses, std::list<int> partialModel);
@@ -65,6 +67,7 @@ namespace AgentNS {
 		static const int FALSE_INT = 0;
 		static const int NULL_INT = -1;
 
+		// Constants representing the actions available to the agent.
 		static const int MOVE_RIGHT = 1;
 		static const int MOVE_LEFT = 2;
 		static const int MOVE_UP = 3;
